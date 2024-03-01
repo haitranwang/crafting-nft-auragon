@@ -9,22 +9,27 @@ use crate::state::{GemInfo, Config};
 pub struct InstantiateMsg {
     // must be hex string and has length 64
     pub random_seed: String,
-    pub is_advanced_randomness: bool,
     // bench32 string address
     pub nois_proxy: String,
+    // Dragon Gem NFT Collection address
+    pub dragon_collection: String,
     // Auragon Ball NFT Collection address
     pub auragon_collection: String,
+    // Shield NFT Collection address
+    pub shield_collection: String,
 }
 
 /// Message type for `execute` entry_point
 #[cw_serde]
 pub enum ExecuteMsg {
-    // A map maps nft id with NFT contract address
-    ForgingGem {
+    // All users join the queue to forge gem
+    JoinQueue {
         gem_base: GemInfo,
         gem_materials: Vec<GemInfo>,
-        shield: Option<GemInfo>,
-    }
+        shield_id: Option<String>,
+    },
+    // Forging gem
+    ForgeGem { is_success: bool },
 }
 
 #[cw_serde]

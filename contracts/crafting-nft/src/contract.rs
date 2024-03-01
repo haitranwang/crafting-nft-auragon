@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    ensure_eq, has_coins, to_json_binary, wasm_execute, Addr, Api, BalanceResponse, BankMsg, BankQuery, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Order, QueryRequest, Response, StdResult, Storage, Timestamp, Uint128, WasmMsg
+    ensure_eq, has_coins, to_json_binary, wasm_execute, Addr, Api, BalanceResponse, BankMsg, BankQuery, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Order, QueryRequest, Response, StdResult, Storage, Timestamp, Uint128, WasmMsg
 };
 use cw2::set_contract_version;
 
@@ -11,7 +11,7 @@ use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 use cw20::Cw20ExecuteMsg;
 use nois::randomness_from_str;
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg}, state::{Config, GemInfo, CONFIG, RANDOM_SEED}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, UsersInQueue, CONFIG, LATEST_TOKEN_ID, RANDOM_SEED, USERS_IN_QUEUE}};
 
 
 // version info for migration info
@@ -36,14 +36,18 @@ pub fn instantiate(
     let nois_proxy = addr_validate(deps.api, &msg.nois_proxy)?;
 
     let config = Config {
-        is_advanced_randomness: msg.is_advanced_randomness,
         nois_proxy,
+        auragon_collection: addr_validate(deps.api, &msg.auragon_collection)?,
+        shield_collection: addr_validate(deps.api, &msg.shield_collection)?,
     };
     CONFIG.save(deps.storage, &config)?;
 
     // save the init RANDOM_SEED to the storage
     let randomness = randomness_from_str(msg.random_seed).unwrap();
     RANDOM_SEED.save(deps.storage, &randomness)?;
+
+    // Initialize the token id
+    LATEST_TOKEN_ID.save(deps.storage, &0)?;
 
     Ok(Response::new()
         .add_attribute("method", "instantiate")
@@ -58,24 +62,38 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::ForgingGem {
+        ExecuteMsg::JoinQueue {
             gem_base,
             gem_materials,
-            shield,
-        } => execute_forging_gem(deps, env, info, gem_base, gem_materials, shield),
+            shield_id,
+        } => execute_join_queue(deps, env, info, gem_base, gem_materials, shield_id),
+        ExecuteMsg::ForgeGem { is_success } => execute_forge_gem(deps, env, info, is_success),
     }
 }
 
-pub fn execute_forging_gem(
+pub fn execute_join_queue(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     gem_base: GemInfo,
     gem_materials: Vec<GemInfo>,
-    shield: Option<GemInfo>,
+    shield_id: Option<String>,
 ) -> Result<Response, ContractError> {
+
+    // Load the config
+    let config = CONFIG.load(deps.storage)?;
+
+    // Load the auragon_collection
+    let auragon_collection = config.auragon_collection;
+
+    // Load the shield_collection
+    let shield_collection = config.shield_collection;
+
+    // Load the latest token id
+    let mut latest_token_id = LATEST_TOKEN_ID.load(deps.storage)?;
+
     let mut res = Response::new();
-    // Approve the gem_base, gem_materials and shield NFT contracts to transfer the NFT to this contract
+    // Approve the gem_base NFT
     let approve_gem_base = wasm_execute(
         gem_base.nft_contract.clone(),
         &Cw721ExecuteMsg::Approve {
@@ -88,7 +106,8 @@ pub fn execute_forging_gem(
 
     res = res.add_message(approve_gem_base);
 
-    for gem_material in gem_materials {
+    // Approve the gem_materials NFTs
+    for gem_material in &gem_materials {
         let approve_gem_material = wasm_execute(
             gem_material.nft_contract.clone(),
             &Cw721ExecuteMsg::Approve {
@@ -101,20 +120,41 @@ pub fn execute_forging_gem(
         res = res.add_message(approve_gem_material);
     }
 
-    if let Some(shield) = shield {
+    // Approve, Transfer the shield NFT to this contract and burn it
+    if let Some(ref shield_id) = shield_id {
         let approve_shield = wasm_execute(
-            shield.nft_contract.clone(),
+            shield_collection.clone(),
             &Cw721ExecuteMsg::Approve {
                 spender: env.contract.address.to_string(),
-                token_id: shield.nft_id.to_string(),
+                token_id: shield_id.to_string(),
                 expires: None,
             },
             vec![],
         )?;
         res = res.add_message(approve_shield);
+
+        let transfer_shield = wasm_execute(
+            shield_collection.clone(),
+            &Cw721ExecuteMsg::TransferNft {
+                recipient: env.contract.address.to_string(),
+                token_id: shield_id.to_string(),
+            },
+            vec![],
+        )?;
+        res = res.add_message(transfer_shield);
+
+        let burn_shield = wasm_execute(
+            shield_collection.clone(),
+            &Cw721ExecuteMsg::Burn {
+                token_id: shield_id.to_string(),
+            },
+            vec![],
+        )?;
+
+        res = res.add_message(burn_shield);
     }
 
-    // Transfer the gem_base, gem_materials and shield NFTs to this contract
+    // Transfer the gem_base NFT to this contract
     let transfer_gem_base = wasm_execute(
         gem_base.nft_contract.clone(),
         &Cw721ExecuteMsg::TransferNft {
@@ -126,7 +166,8 @@ pub fn execute_forging_gem(
 
     res = res.add_message(transfer_gem_base);
 
-    for gem_material in gem_materials {
+    // Transfer the gem_materials NFTs to this contract
+    for gem_material in &gem_materials {
         let transfer_gem_material = wasm_execute(
             gem_material.nft_contract.clone(),
             &Cw721ExecuteMsg::TransferNft {
@@ -138,29 +179,30 @@ pub fn execute_forging_gem(
         res = res.add_message(transfer_gem_material);
     }
 
-    if let Some(shield) = shield {
-        let transfer_shield = wasm_execute(
-            shield.nft_contract.clone(),
-            &Cw721ExecuteMsg::TransferNft {
-                recipient: env.contract.address.to_string(),
-                token_id: shield.nft_id.to_string(),
-            },
-            vec![],
-        )?;
-        res = res.add_message(transfer_shield);
-    }
+    // Add the user to the queue
+    let user_in_queue = UsersInQueue {
+        user_addr: info.sender.clone(),
+        gem_base: gem_base.clone(),
+        gem_materials: gem_materials.clone(),
+        shield_id,
+        timestamp: env.block.time,
+    };
 
-    // Burn the gem_base, gem_materials and shield NFTs
-    let burn_gem_base = wasm_execute(
-        gem_base.nft_contract.clone(),
-        &Cw721ExecuteMsg::Burn {
-            token_id: gem_base.nft_id.to_string(),
-        },
-        vec![],
-    )?;
+    // Add the user to the queue
+    USERS_IN_QUEUE.push_back(deps.storage, &user_in_queue)?;
 
-    res = res.add_message(burn_gem_base);
+    // // Burn the gem_base, gem_materials NFTs
+    // let burn_gem_base = wasm_execute(
+    //     gem_base.nft_contract.clone(),
+    //     &Cw721ExecuteMsg::Burn {
+    //         token_id: gem_base.nft_id.to_string(),
+    //     },
+    //     vec![],
+    // )?;
 
+    // res = res.add_message(burn_gem_base);
+
+    // Burn the gem_materials NFTs
     for gem_material in gem_materials {
         let burn_gem_material = wasm_execute(
             gem_material.nft_contract.clone(),
@@ -172,31 +214,110 @@ pub fn execute_forging_gem(
         res = res.add_message(burn_gem_material);
     }
 
-    if let Some(shield) = shield {
-        let burn_shield = wasm_execute(
-            shield.nft_contract.clone(),
-            &Cw721ExecuteMsg::Burn {
-                token_id: shield.nft_id.to_string(),
-            },
-            vec![],
-        )?;
-        res = res.add_message(burn_shield);
+    // // Mint the new gem NFT
+    // let extension = GemMetadata {
+    //     color: "red".to_string(),
+    //     level: 1,
+    // };
+
+    // // Mint the new gem NFT from auragon_collection with token id increment by 1
+    // latest_token_id += 1;
+
+    // // Mint the new gem NFT from auragon_collection
+    // let mint_gem = wasm_execute(
+    //     auragon_collection.to_string(),
+    //     &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+    //         token_id: latest_token_id.to_string(),
+    //         owner: info.sender.to_string(),
+    //         token_uri: None,
+    //         extension,
+    //     },
+    //     vec![],
+    // )?;
+
+    // res = res.add_message(mint_gem);
+
+    // Update the latest token id
+    // LATEST_TOKEN_ID.save(deps.storage, &latest_token_id)?;
+
+    Ok(res.add_attributes(vec![
+        ("action", "join_queue"),
+        ("user", info.sender.as_str()),
+    ]))
+}
+
+pub fn execute_forge_gem(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    is_success: bool,
+) -> Result<Response, ContractError> {
+    // Load the config
+    let config = CONFIG.load(deps.storage)?;
+
+    // Load the nois_proxy
+    let nois_proxy = config.nois_proxy;
+
+    // Load the auragon_collection
+    let auragon_collection = config.auragon_collection;
+
+    // Load the shield_collection
+    let shield_collection = config.shield_collection;
+
+    // Load the latest token id
+    let mut latest_token_id = LATEST_TOKEN_ID.load(deps.storage)?;
+
+    // Load the random seed
+    let random_seed = RANDOM_SEED.load(deps.storage)?;
+
+    let mut res = Response::new();
+
+    // Loop through the queue and forge the gem
+    let queue_len = USERS_IN_QUEUE.len(deps.storage)?;
+
+    if queue_len == 0 {
+        return Err(ContractError::PlayerNotFound { });
     }
 
-    // Mint the new gem NFT from auragon_collection
-    let mint_gem = wasm_execute(
-        "auragon_collection".to_string(),
-        &Cw721BaseExecuteMsg::Mint {
-            recipient: info.sender.to_string(),
-            token_id: "1".to_string(),
-            name: "Gem".to_string(),
-            description: "A gem".to_string(),
-            image: None,
-        },
-        vec![],
-    )?;
+    for _ in 0..queue_len {
+        let user_in_queue = USERS_IN_QUEUE.pop_front(deps.storage)?;
+        if is_success {
+            // Mint the new gem NFT
+            let extension = GemMetadata {
+                color: "red".to_string(),
+                level: 1,
+            };
 
+            // Mint the new gem NFT from auragon_collection with token id increment by 1
+            latest_token_id += 1;
+
+            // Mint the new gem NFT from auragon_collection
+            let mint_gem = wasm_execute(
+                auragon_collection.to_string(),
+                &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+                    token_id: latest_token_id.to_string(),
+                    owner: user_in_queue.unwrap().user_addr.to_string(),
+                    token_uri: None,
+                    extension,
+                },
+                vec![],
+            )?;
+
+            res = res.add_message(mint_gem);
+        }
+    }
     Ok(res)
+}
+/// Handling contract query
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
+    }
+}
+
+fn query_config(deps: Deps) -> StdResult<Config> {
+    CONFIG.load(deps.storage)
 }
 
 /// validate string if it is valid bench32 string addresss
