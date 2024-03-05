@@ -2,7 +2,7 @@
 mod tests {
     const INIT_1000_000_NATIVE_BALANCE_2: u128 = 1_000_000_000_000u128;
     mod execute_proper_operation {
-        use crate::state::{Config, GemInfo, GemMetadata, CONFIG, LATEST_TOKEN_ID, RANDOM_SEED};
+        use crate::state::{Config, GemInfo, GemMetadata, CONFIG, AURAGON_LATEST_TOKEN_ID, RANDOM_SEED};
         use crate::tests::integration_test::tests::INIT_1000_000_NATIVE_BALANCE_2;
         use cosmwasm_std::{
             from_json, to_json_binary, Addr, BalanceResponse as BankBalanceResponse, BankQuery,

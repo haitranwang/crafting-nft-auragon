@@ -1,7 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use nois::NoisCallback;
 
-use crate::state::{GemInfo, Config};
+use crate::state::{Config, GemInfo, GemMetadata, UserInfo};
 
 
 /// Message type for `instantiate` entry_point
@@ -41,7 +41,10 @@ pub enum ExecuteMsg {
         shield_id: Option<String>,
     },
     // Forging gem
-    ForgeGem { is_success: bool },
+    ForgeGem {
+        is_success: bool,
+        // user_list: Vec<UserInfo>,
+    },
     // Nois callback
     NoisReceive {
         callback: NoisCallback,
@@ -51,6 +54,16 @@ pub enum ExecuteMsg {
         dragon_collection: Option<String>,
         auragon_collection: Option<String>,
         shield_collection: Option<String>,
+    },
+    MintAuragonGem {
+        owner: String,
+        token_uri: String,
+        extension: GemMetadata,
+    },
+    MintShieldGem {
+        owner: String,
+        token_uri: String,
+        extension: GemMetadata,
     },
 }
 

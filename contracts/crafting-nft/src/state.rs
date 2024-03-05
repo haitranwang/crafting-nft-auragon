@@ -19,7 +19,7 @@ pub struct GemInfo {
 }
 
 #[cw_serde]
-pub struct UsersInQueue {
+pub struct UserInfo {
     pub user_addr: Addr,
     pub gem_base: GemInfo,
     pub gem_materials: Vec<GemInfo>,
@@ -109,10 +109,12 @@ pub const RANDOM_SEED: Item<[u8; 32]> = Item::new("random seed");
 
 pub const RANDOM_JOBS: Map<String, RandomJob> = Map::new("random jobs");
 
-pub const LATEST_TOKEN_ID: Item<u64> = Item::new("current token id");
+pub const AURAGON_LATEST_TOKEN_ID: Item<u64> = Item::new("auragon latest token id");
+
+pub const SHIELD_LATEST_TOKEN_ID: Item<u64> = Item::new("shield latest token id");
 
 // DeQueue to store the gem forging requests from users
-pub const USERS_IN_QUEUE: Deque<UsersInQueue> = Deque::new("users_in_queue");
+pub const USERS_IN_QUEUE: Deque<UserInfo> = Deque::new("users_in_queue");
 
 // Current Queue ID
 pub const CURRENT_QUEUE_ID: Item<u64> = Item::new("current queue id");

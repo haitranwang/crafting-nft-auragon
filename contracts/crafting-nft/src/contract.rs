@@ -13,7 +13,7 @@ use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 use cw20::Cw20ExecuteMsg;
 use nois::{randomness_from_str, NoisCallback, ProxyExecuteMsg};
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, RandomJob, UsersInQueue, CONFIG, CURRENT_QUEUE_ID, LATEST_TOKEN_ID, RANDOM_JOBS, RANDOM_SEED, USERS_IN_QUEUE}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, RandomJob, UserInfo, AURAGON_LATEST_TOKEN_ID, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, USERS_IN_QUEUE}};
 
 
 // version info for migration info
@@ -50,7 +50,8 @@ pub fn instantiate(
     RANDOM_SEED.save(deps.storage, &randomness)?;
 
     // Initialize the token id
-    LATEST_TOKEN_ID.save(deps.storage, &0)?;
+    AURAGON_LATEST_TOKEN_ID.save(deps.storage, &0)?;
+    SHIELD_LATEST_TOKEN_ID.save(deps.storage, &0)?;
 
     // Initialize the current queue id
     CURRENT_QUEUE_ID.save(deps.storage, &0)?;
@@ -81,6 +82,9 @@ pub fn execute(
             auragon_collection,
             shield_collection,
         } => update_collection(deps, env, info, dragon_collection, auragon_collection, shield_collection),
+        ExecuteMsg::MintAuragonGem { owner, token_uri, extension
+        } => mint_auragon_gem(deps, env, info, owner, token_uri, extension),
+        ExecuteMsg::MintShieldGem { owner, token_uri, extension } => mint_shield_gem(deps, env, info, owner, token_uri, extension),
     }
 }
 
@@ -103,7 +107,7 @@ pub fn execute_join_queue(
     let shield_collection = config.shield_collection;
 
     // Load the latest token id
-    let mut latest_token_id = LATEST_TOKEN_ID.load(deps.storage)?;
+    let mut latest_token_id = AURAGON_LATEST_TOKEN_ID.load(deps.storage)?;
 
     // Load current queue id
     let mut current_queue_id = CURRENT_QUEUE_ID.load(deps.storage)?;
@@ -196,7 +200,7 @@ pub fn execute_join_queue(
     }
 
     // Add the user to the queue
-    let user_in_queue = UsersInQueue {
+    let user_in_queue = UserInfo {
         user_addr: info.sender.clone(),
         gem_base: gem_base.clone(),
         gem_materials: gem_materials.clone(),
@@ -281,7 +285,7 @@ pub fn execute_forge_gem(
     let shield_collection = config.shield_collection;
 
     // Load the latest token id
-    let mut latest_token_id = LATEST_TOKEN_ID.load(deps.storage)?;
+    let mut latest_token_id = AURAGON_LATEST_TOKEN_ID.load(deps.storage)?;
 
     let job_id = format!("{}/{}", info.sender, env.block.time);
 
@@ -388,6 +392,96 @@ pub fn update_collection(
         .add_attribute("dragon_collection", dragon_collection.unwrap_or_default())
         .add_attribute("auragon_collection", auragon_collection.unwrap_or_default())
         .add_attribute("shield_collection", shield_collection.unwrap_or_default()))
+}
+
+pub fn mint_auragon_gem(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    owner: String,
+    token_uri: String,
+    extension: GemMetadata,
+) -> Result<Response, ContractError> {
+    let config: Config = CONFIG.load(deps.storage)?;
+    // Load the latest token id
+    let mut latest_token_id = AURAGON_LATEST_TOKEN_ID.load(deps.storage)?;
+
+    // ensure_eq!(
+    //     info.sender,
+    //     config.nois_proxy,
+    //     ContractError::Unauthorized {}
+    // );
+
+    let auragon_collection = config.auragon_collection;
+
+    // Mint the new gem NFT from auragon_collection with token id increment by 1
+    latest_token_id += 1;
+
+    // Mint the new gem NFT from auragon_collection
+    let mint_gem = wasm_execute(
+        auragon_collection.to_string(),
+        &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+            token_id: latest_token_id.to_string(),
+            owner: info.sender.to_string(),
+            token_uri: Some(token_uri),
+            extension,
+        },
+        vec![],
+    )?;
+
+    // Update the latest token id
+    AURAGON_LATEST_TOKEN_ID.save(deps.storage, &latest_token_id)?;
+
+    Ok(Response::new()
+        .add_message(mint_gem)
+        .add_attribute("action", "mint_auragon_gem")
+        .add_attribute("token_id", &latest_token_id.to_string())
+        .add_attribute("owner", owner))
+}
+
+pub fn mint_shield_gem(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    owner: String,
+    token_uri: String,
+    extension: GemMetadata,
+) -> Result<Response, ContractError> {
+    let config: Config = CONFIG.load(deps.storage)?;
+    // Load the latest token id
+    let mut latest_token_id = SHIELD_LATEST_TOKEN_ID.load(deps.storage)?;
+
+    // ensure_eq!(
+    //     info.sender,
+    //     config.nois_proxy,
+    //     ContractError::Unauthorized {}
+    // );
+
+    let shield_collection = config.shield_collection;
+
+    // Mint the new gem NFT from shield_collection with token id increment by 1
+    latest_token_id += 1;
+
+    // Mint the new gem NFT from shield_collection
+    let mint_gem = wasm_execute(
+        shield_collection.to_string(),
+        &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+            token_id: latest_token_id.to_string(),
+            owner: info.sender.to_string(),
+            token_uri: Some(token_uri),
+            extension,
+        },
+        vec![],
+    )?;
+
+    // Update the latest token id
+    SHIELD_LATEST_TOKEN_ID.save(deps.storage, &latest_token_id)?;
+
+    Ok(Response::new()
+        .add_message(mint_gem)
+        .add_attribute("action", "mint_shield_gem")
+        .add_attribute("token_id", &latest_token_id.to_string())
+        .add_attribute("owner", owner))
 }
 
 pub fn nois_receive(
