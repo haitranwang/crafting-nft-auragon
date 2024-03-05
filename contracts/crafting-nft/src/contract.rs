@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    ensure_eq, has_coins, to_json_binary, wasm_execute, Addr, Api, BalanceResponse, BankMsg, BankQuery, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Order, QueryRequest, Response, StdResult, Storage, Timestamp, Uint128, WasmMsg
+    ensure_eq, has_coins, to_json_binary, wasm_execute, Addr, Api, BalanceResponse, BankMsg, BankQuery, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, QueryRequest, Response, StdResult, Storage, Timestamp, Uint128, WasmMsg
 };
 use cw2::set_contract_version;
 
@@ -9,9 +11,9 @@ use cw721::Cw721ExecuteMsg;
 use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 
 use cw20::Cw20ExecuteMsg;
-use nois::randomness_from_str;
+use nois::{randomness_from_str, NoisCallback, ProxyExecuteMsg};
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, UsersInQueue, CONFIG, LATEST_TOKEN_ID, RANDOM_SEED, USERS_IN_QUEUE}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, RandomJob, UsersInQueue, CONFIG, CURRENT_QUEUE_ID, LATEST_TOKEN_ID, RANDOM_JOBS, RANDOM_SEED, USERS_IN_QUEUE}};
 
 
 // version info for migration info
@@ -49,6 +51,9 @@ pub fn instantiate(
     // Initialize the token id
     LATEST_TOKEN_ID.save(deps.storage, &0)?;
 
+    // Initialize the current queue id
+    CURRENT_QUEUE_ID.save(deps.storage, &0)?;
+
     Ok(Response::new()
         .add_attribute("method", "instantiate")
         .add_attribute("owner", info.sender))
@@ -68,6 +73,8 @@ pub fn execute(
             shield_id,
         } => execute_join_queue(deps, env, info, gem_base, gem_materials, shield_id),
         ExecuteMsg::ForgeGem { is_success } => execute_forge_gem(deps, env, info, is_success),
+        //nois callback
+        ExecuteMsg::NoisReceive { callback } => nois_receive(deps, env, info, callback),
     }
 }
 
@@ -91,6 +98,9 @@ pub fn execute_join_queue(
 
     // Load the latest token id
     let mut latest_token_id = LATEST_TOKEN_ID.load(deps.storage)?;
+
+    // Load current queue id
+    let mut current_queue_id = CURRENT_QUEUE_ID.load(deps.storage)?;
 
     let mut res = Response::new();
     // Approve the gem_base NFT
@@ -267,10 +277,30 @@ pub fn execute_forge_gem(
     // Load the latest token id
     let mut latest_token_id = LATEST_TOKEN_ID.load(deps.storage)?;
 
-    // Load the random seed
-    let random_seed = RANDOM_SEED.load(deps.storage)?;
+    let job_id = format!("{}/{}", info.sender, env.block.time);
+
+    let mut funds = info.funds;
 
     let mut res = Response::new();
+
+    // Make randomness request message to NOIS proxy contract
+    let msg_make_randomess = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: nois_proxy.into(),
+        msg: to_json_binary(&ProxyExecuteMsg::GetNextRandomness {
+            job_id: job_id.clone(),
+        })?,
+        funds,
+    });
+
+    res = res.add_message(msg_make_randomess);
+
+    // save job for mapping callback response to request
+    let random_job = RandomJob {
+        player: info.sender.clone(),
+        timestamp: env.block.time,
+    };
+
+    RANDOM_JOBS.save(deps.storage, job_id.clone(), &random_job)?;
 
     // Loop through the queue and forge the gem
     let queue_len = USERS_IN_QUEUE.len(deps.storage)?;
@@ -286,6 +316,7 @@ pub fn execute_forge_gem(
             let extension = GemMetadata {
                 color: "red".to_string(),
                 level: 1,
+                work_power: Decimal::from_str("360").unwrap(),
             };
 
             // Mint the new gem NFT from auragon_collection with token id increment by 1
@@ -308,16 +339,81 @@ pub fn execute_forge_gem(
     }
     Ok(res)
 }
+
+pub fn nois_receive(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    callback: NoisCallback,
+) -> Result<Response, ContractError> {
+    let config: Config = CONFIG.load(deps.storage)?;
+
+    ensure_eq!(
+        info.sender,
+        config.nois_proxy,
+        ContractError::Unauthorized {}
+    );
+
+    let job_id = callback.job_id;
+    let randomness: [u8; 32] = callback
+        .randomness
+        .to_array()
+        .map_err(|_| ContractError::InvalidRandomness {})?;
+
+    let random_job: RandomJob =
+        if let Some(job) = RANDOM_JOBS.may_load(deps.storage, job_id.clone())? {
+            job
+        } else {
+            return Err(ContractError::RandomJobNotFound {});
+        };
+
+    // init a key for the random provider from the job id and current time
+    let key = format!("{}{}", job_id.clone(), env.block.time);
+
+    select_gem_rewards(
+        deps.storage,
+        random_job.player,
+        randomness,
+        key,
+        random_job.timestamp,
+    )?;
+
+    // job finished, just remove
+    RANDOM_JOBS.remove(deps.storage, job_id.clone());
+
+    Ok(Response::new()
+        .add_attribute("action", "nois_receive")
+        .add_attribute("job_id", job_id))
+}
+
+fn select_gem_rewards(
+    storage: &mut dyn Storage,
+    player: Addr,
+    randomness: [u8; 32],
+    key: String,
+    forges: Timestamp,
+) -> Result<(), ContractError> {
+    // update random seed
+    RANDOM_SEED.save(storage, &randomness)?;
+
+    Ok(())
+}
+
 /// Handling contract query
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
+        QueryMsg::RandomSeed {} => to_json_binary(&query_random_seed(deps)?),
     }
 }
 
 fn query_config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)
+}
+
+fn query_random_seed(deps: Deps) -> StdResult<[u8; 32]> {
+    RANDOM_SEED.load(deps.storage)
 }
 
 /// validate string if it is valid bench32 string addresss

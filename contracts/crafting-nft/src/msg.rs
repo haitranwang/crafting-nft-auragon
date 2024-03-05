@@ -17,6 +17,18 @@ pub struct InstantiateMsg {
     pub auragon_collection: String,
     // Shield NFT Collection address
     pub shield_collection: String,
+    // White Gem Work Power
+    pub white_gem_work_power: Vec<String>,
+    // Blue Gem Work Power
+    pub blue_gem_work_power: Vec<String>,
+    // Gold Gem Work Power
+    pub gold_gem_work_power: Vec<String>,
+    // Red Gem Work Power
+    pub red_gem_work_power: Vec<String>,
+    // Gem Ratio
+    pub gem_ratio: Vec<String>,
+    // Gem work load
+    pub gem_work_load: Vec<String>,
 }
 
 /// Message type for `execute` entry_point
@@ -30,6 +42,10 @@ pub enum ExecuteMsg {
     },
     // Forging gem
     ForgeGem { is_success: bool },
+    // Nois callback
+    NoisReceive {
+        callback: NoisCallback,
+    },
 }
 
 #[cw_serde]
@@ -37,4 +53,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(Config)]
     Config {},
+    // Random seed
+    #[returns(String)]
+    RandomSeed {},
 }

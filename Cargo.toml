@@ -14,6 +14,7 @@ cw2 = "1.0.1"
 cw20 = "1.0.1"
 cw721 = "0.17.0"
 cw721-base = { version = "0.17.0", features = ["library"] }
+getrandom = {version = "0.2.8", default-features = false, features = ["js"]}
 schemars = "0.8.8"
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
