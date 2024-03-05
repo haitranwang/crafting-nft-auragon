@@ -46,11 +46,14 @@
         "forge_gem": {
           "type": "object",
           "required": [
-            "is_success"
+            "user_list"
           ],
           "properties": {
-            "is_success": {
-              "type": "boolean"
+            "user_list": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/UserInfo"
+              }
             }
           },
           "additionalProperties": false
@@ -265,6 +268,39 @@
     "Uint64": {
       "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
       "type": "string"
+    },
+    "UserInfo": {
+      "type": "object",
+      "required": [
+        "gem_base",
+        "gem_materials",
+        "timestamp",
+        "user_addr"
+      ],
+      "properties": {
+        "gem_base": {
+          "$ref": "#/definitions/GemInfo"
+        },
+        "gem_materials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GemInfo"
+          }
+        },
+        "shield_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timestamp": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "user_addr": {
+          "$ref": "#/definitions/Addr"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

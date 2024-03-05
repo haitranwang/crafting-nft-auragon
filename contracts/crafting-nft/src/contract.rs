@@ -74,7 +74,7 @@ pub fn execute(
             gem_materials,
             shield_id,
         } => execute_join_queue(deps, env, info, gem_base, gem_materials, shield_id),
-        ExecuteMsg::ForgeGem { is_success } => execute_forge_gem(deps, env, info, is_success),
+        ExecuteMsg::ForgeGem { user_list } => execute_forge_gem(deps, env, info, user_list),
         //nois callback
         ExecuteMsg::NoisReceive { callback } => nois_receive(deps, env, info, callback),
         ExecuteMsg::UpdateCollection {
@@ -270,7 +270,7 @@ pub fn execute_forge_gem(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    is_success: bool,
+    user_list: Vec<UserInfo>,
 ) -> Result<Response, ContractError> {
     // Load the config
     let config = CONFIG.load(deps.storage)?;
@@ -312,40 +312,31 @@ pub fn execute_forge_gem(
 
     RANDOM_JOBS.save(deps.storage, job_id.clone(), &random_job)?;
 
-    // Loop through the queue and forge the gem
-    let queue_len = USERS_IN_QUEUE.len(deps.storage)?;
+    // Loop through user_list and forge the gem
+    for user in user_list {
+        // Mint the new gem NFT
+        let extension = GemMetadata {
+            color: "red".to_string(),
+            level: 1,
+            work_power: Decimal::from_str("360").unwrap(),
+        };
 
-    if queue_len == 0 {
-        return Err(ContractError::PlayerNotFound { });
-    }
+        // Mint the new gem NFT from auragon_collection with token id increment by 1
+        latest_token_id += 1;
 
-    for _ in 0..queue_len {
-        let user_in_queue = USERS_IN_QUEUE.pop_front(deps.storage)?;
-        if is_success {
-            // Mint the new gem NFT
-            let extension = GemMetadata {
-                color: "red".to_string(),
-                level: 1,
-                work_power: Decimal::from_str("360").unwrap(),
-            };
+        // Mint the new gem NFT from auragon_collection
+        let mint_gem = wasm_execute(
+            auragon_collection.to_string(),
+            &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+                token_id: latest_token_id.to_string(),
+                owner: user.user_addr.to_string(),
+                token_uri: None,
+                extension,
+            },
+            vec![],
+        )?;
 
-            // Mint the new gem NFT from auragon_collection with token id increment by 1
-            latest_token_id += 1;
-
-            // Mint the new gem NFT from auragon_collection
-            let mint_gem = wasm_execute(
-                auragon_collection.to_string(),
-                &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
-                    token_id: latest_token_id.to_string(),
-                    owner: user_in_queue.unwrap().user_addr.to_string(),
-                    token_uri: None,
-                    extension,
-                },
-                vec![],
-            )?;
-
-            res = res.add_message(mint_gem);
-        }
+        res = res.add_message(mint_gem);
     }
     Ok(res)
 }

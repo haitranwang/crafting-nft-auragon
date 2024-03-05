@@ -42,8 +42,7 @@ pub enum ExecuteMsg {
     },
     // Forging gem
     ForgeGem {
-        is_success: bool,
-        // user_list: Vec<UserInfo>,
+        user_list: Vec<UserInfo>,
     },
     // Nois callback
     NoisReceive {
