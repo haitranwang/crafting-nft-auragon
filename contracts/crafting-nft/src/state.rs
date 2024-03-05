@@ -7,6 +7,7 @@ use cw_storage_plus::{Item, Map, Deque};
 #[cw_serde]
 pub struct Config {
     pub nois_proxy: Addr,
+    pub dragon_collection: Addr,
     pub auragon_collection: Addr,
     pub shield_collection: Addr,
 }

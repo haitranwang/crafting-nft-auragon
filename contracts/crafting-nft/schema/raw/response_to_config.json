@@ -4,11 +4,15 @@
   "type": "object",
   "required": [
     "auragon_collection",
+    "dragon_collection",
     "nois_proxy",
     "shield_collection"
   ],
   "properties": {
     "auragon_collection": {
+      "$ref": "#/definitions/Addr"
+    },
+    "dragon_collection": {
       "$ref": "#/definitions/Addr"
     },
     "nois_proxy": {

@@ -39,6 +39,7 @@ pub fn instantiate(
 
     let config = Config {
         nois_proxy,
+        dragon_collection: addr_validate(deps.api, &msg.dragon_collection)?,
         auragon_collection: addr_validate(deps.api, &msg.auragon_collection)?,
         shield_collection: addr_validate(deps.api, &msg.shield_collection)?,
     };
@@ -75,6 +76,11 @@ pub fn execute(
         ExecuteMsg::ForgeGem { is_success } => execute_forge_gem(deps, env, info, is_success),
         //nois callback
         ExecuteMsg::NoisReceive { callback } => nois_receive(deps, env, info, callback),
+        ExecuteMsg::UpdateCollection {
+            dragon_collection,
+            auragon_collection,
+            shield_collection,
+        } => update_collection(deps, env, info, dragon_collection, auragon_collection, shield_collection),
     }
 }
 
@@ -338,6 +344,50 @@ pub fn execute_forge_gem(
         }
     }
     Ok(res)
+}
+
+pub fn update_collection(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    dragon_collection: Option<String>,
+    auragon_collection: Option<String>,
+    shield_collection: Option<String>,
+) -> Result<Response, ContractError> {
+    let config: Config = CONFIG.load(deps.storage)?;
+
+    // ensure_eq!(
+    //     info.sender,
+    //     config.nois_proxy,
+    //     ContractError::Unauthorized {}
+    // );
+
+    if let Some(ref dragon_collection) = dragon_collection {
+        CONFIG.update(deps.storage, |mut config| -> Result<_, ContractError> {
+            config.dragon_collection = addr_validate(deps.api, &dragon_collection)?;
+            Ok(config)
+        })?;
+    }
+
+    if let Some(ref auragon_collection) = auragon_collection {
+        CONFIG.update(deps.storage, |mut config| -> Result<_, ContractError> {
+            config.auragon_collection = addr_validate(deps.api, &auragon_collection)?;
+            Ok(config)
+        })?;
+    }
+
+    if let Some(ref shield_collection) = shield_collection {
+        CONFIG.update(deps.storage, |mut config| -> Result<_, ContractError> {
+            config.shield_collection = addr_validate(deps.api, &shield_collection)?;
+            Ok(config)
+        })?;
+    }
+
+    Ok(Response::new()
+        .add_attribute("action", "update_collection")
+        .add_attribute("dragon_collection", dragon_collection.unwrap_or_default())
+        .add_attribute("auragon_collection", auragon_collection.unwrap_or_default())
+        .add_attribute("shield_collection", shield_collection.unwrap_or_default()))
 }
 
 pub fn nois_receive(

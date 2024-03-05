@@ -155,6 +155,39 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "update_collection"
+        ],
+        "properties": {
+          "update_collection": {
+            "type": "object",
+            "properties": {
+              "auragon_collection": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "dragon_collection": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "shield_collection": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ],
     "definitions": {
@@ -269,11 +302,15 @@
       "type": "object",
       "required": [
         "auragon_collection",
+        "dragon_collection",
         "nois_proxy",
         "shield_collection"
       ],
       "properties": {
         "auragon_collection": {
+          "$ref": "#/definitions/Addr"
+        },
+        "dragon_collection": {
           "$ref": "#/definitions/Addr"
         },
         "nois_proxy": {

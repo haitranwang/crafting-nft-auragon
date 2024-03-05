@@ -46,6 +46,12 @@ pub enum ExecuteMsg {
     NoisReceive {
         callback: NoisCallback,
     },
+    // Update collection
+    UpdateCollection {
+        dragon_collection: Option<String>,
+        auragon_collection: Option<String>,
+        shield_collection: Option<String>,
+    },
 }
 
 #[cw_serde]

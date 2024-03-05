@@ -78,6 +78,39 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_collection"
+      ],
+      "properties": {
+        "update_collection": {
+          "type": "object",
+          "properties": {
+            "auragon_collection": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "dragon_collection": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "shield_collection": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {
