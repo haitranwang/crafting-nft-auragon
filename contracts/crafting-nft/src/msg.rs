@@ -34,7 +34,7 @@ pub struct InstantiateMsg {
     // Red Gem uri
     pub red_gem_uri: [String; 7],
     // Gem Ratio
-    pub gem_ratio: [String; 7],
+    pub gem_ratio: [String; 4],
     // Gem work load
     pub gem_work_load: [String; 7],
 }

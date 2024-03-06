@@ -13,6 +13,14 @@ pub struct Config {
 }
 
 #[cw_serde]
+pub struct AuragonURI {
+    pub white: [String; 7],
+    pub blue: [String; 7],
+    pub gold: [String; 7],
+    pub red: [String; 7],
+}
+
+#[cw_serde]
 pub struct GemInfo {
     pub nft_id: String,
     pub nft_contract: Addr,
@@ -146,3 +154,6 @@ pub const USERS_IN_QUEUE: Deque<UserInfo> = Deque::new("users_in_queue");
 
 // Current Queue ID
 pub const CURRENT_QUEUE_ID: Item<u64> = Item::new("current queue id");
+
+// Auragon URI
+pub const AURAGON_URI: Item<AuragonURI> = Item::new("auragon uri");

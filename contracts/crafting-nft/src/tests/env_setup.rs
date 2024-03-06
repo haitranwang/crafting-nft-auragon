@@ -252,13 +252,10 @@ pub mod env {
                 "https://ipfs.io/ipfs/R7".to_string(),
             ],
             gem_ratio: [
-                "0.1".to_string(),
-                "0.2".to_string(),
-                "0.3".to_string(),
-                "0.4".to_string(),
-                "0.5".to_string(),
-                "0.6".to_string(),
-                "0.7".to_string(),
+                "0.9".to_string(),
+                "0.08".to_string(),
+                "0.015".to_string(),
+                "0.005".to_string(),
             ],
             gem_work_load: [
                 "0.1".to_string(),

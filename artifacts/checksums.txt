@@ -1,1 +1,1 @@
-b027b71281225e43c4bb0378d30a8ba0a26c90fe984aa8d332d5682c1fcdc03f  crafting_nft.wasm
+99eb4e1b8c2f3554dce6741bf0bb777c262115aa6fcf52bb2ac2b53ef082225e  crafting_nft.wasm

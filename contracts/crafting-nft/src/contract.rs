@@ -13,7 +13,7 @@ use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 use cw20::Cw20ExecuteMsg;
 use nois::{randomness_from_str, NoisCallback, ProxyExecuteMsg};
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, USERS_IN_QUEUE}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{AuragonURI, Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, USERS_IN_QUEUE}};
 
 
 // version info for migration info
@@ -44,6 +44,16 @@ pub fn instantiate(
         shield_collection: addr_validate(deps.api, &msg.shield_collection)?,
     };
     CONFIG.save(deps.storage, &config)?;
+
+    AURAGON_URI.save(
+        deps.storage,
+        &AuragonURI {
+            white: msg.white_gem_uri,
+            blue: msg.blue_gem_uri,
+            gold: msg.gold_gem_uri,
+            red: msg.red_gem_uri,
+        },
+    )?;
 
     // save the init RANDOM_SEED to the storage
     let randomness = randomness_from_str(msg.random_seed).unwrap();
@@ -390,11 +400,13 @@ pub fn mint_auragon_gem(
     info: MessageInfo,
     owner: String,
     token_uri: String,
-    extension: GemMetadata,
+    gem_trait: GemMetadata,
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
     // Load the latest token id
     let mut latest_token_id = AURAGON_LATEST_TOKEN_ID.load(deps.storage)?;
+    // Load auragon uri
+    let auragon_uri = AURAGON_URI.load(deps.storage)?;
 
     // ensure_eq!(
     //     info.sender,
@@ -412,15 +424,23 @@ pub fn mint_auragon_gem(
             Trait {
                 display_type: None,
                 trait_type: "color".to_string(),
-                value: extension.color,
+                value: gem_trait.color.clone(),
             },
             Trait {
                 display_type: None,
                 trait_type: "star".to_string(),
-                value: extension.star.to_string(),
+                value: gem_trait.star.to_string(),
             }
         ].into(),
         ..Default::default()
+    };
+
+    let token_uri = match gem_trait.color.as_str() {
+        "white" => auragon_uri.white[gem_trait.star as usize].clone(),
+        "blue" => auragon_uri.blue[gem_trait.star as usize].clone(),
+        "gold" => auragon_uri.gold[gem_trait.star as usize].clone(),
+        "red" => auragon_uri.red[gem_trait.star as usize].clone(),
+        _ => "".to_string(),
     };
 
     // Mint the new gem NFT from auragon_collection
