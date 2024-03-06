@@ -25,13 +25,20 @@
       "type": "string"
     },
     "blue_gem_uri": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "blue_gem_work_power": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "dragon_collection": {
       "type": "string"
@@ -40,22 +47,33 @@
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "gem_work_load": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "gold_gem_uri": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "gold_gem_work_power": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "nois_proxy": {
       "type": "string"
@@ -64,25 +82,39 @@
       "type": "string"
     },
     "red_gem_uri": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "red_gem_work_power": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "shield_collection": {
       "type": "string"
     },
     "white_gem_uri": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 7,
+      "minItems": 7
     },
     "white_gem_work_power": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "maxItems": 7,
+      "minItems": 7
     }
   },
   "additionalProperties": false

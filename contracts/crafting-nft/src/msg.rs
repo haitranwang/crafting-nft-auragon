@@ -18,25 +18,25 @@ pub struct InstantiateMsg {
     // Shield NFT Collection address
     pub shield_collection: String,
     // White Gem Work Power
-    pub white_gem_work_power: Vec<String>,
+    pub white_gem_work_power: [String; 7],
     // White Gem uri
-    pub white_gem_uri: String,
+    pub white_gem_uri: [String; 7],
     // Blue Gem Work Power
-    pub blue_gem_work_power: Vec<String>,
+    pub blue_gem_work_power: [String; 7],
     // Blue Gem uri
-    pub blue_gem_uri: String,
+    pub blue_gem_uri: [String; 7],
     // Gold Gem Work Power
-    pub gold_gem_work_power: Vec<String>,
+    pub gold_gem_work_power: [String; 7],
     // Gold Gem uri
-    pub gold_gem_uri: String,
+    pub gold_gem_uri: [String; 7],
     // Red Gem Work Power
-    pub red_gem_work_power: Vec<String>,
+    pub red_gem_work_power: [String; 7],
     // Red Gem uri
-    pub red_gem_uri: String,
+    pub red_gem_uri: [String; 7],
     // Gem Ratio
-    pub gem_ratio: Vec<String>,
+    pub gem_ratio: [String; 7],
     // Gem work load
-    pub gem_work_load: Vec<String>,
+    pub gem_work_load: [String; 7],
 }
 
 /// Message type for `execute` entry_point

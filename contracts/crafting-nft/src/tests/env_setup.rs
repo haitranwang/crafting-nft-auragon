@@ -179,7 +179,7 @@ pub mod env {
             dragon_collection: dragon_collection_contract_addr.to_string(),
             auragon_collection: auragon_collection_contract_addr.to_string(),
             shield_collection: shield_collection_contract_addr.to_string(),
-            white_gem_work_power: vec![
+            white_gem_work_power: [
                 "2".to_string(),
                 "3".to_string(),
                 "5".to_string(),
@@ -188,8 +188,16 @@ pub mod env {
                 "21".to_string(),
                 "34".to_string(),
             ],
-            white_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
-            blue_gem_work_power: vec![
+            white_gem_uri: [
+                "https://ipfs.io/ipfs/W1".to_string(),
+                "https://ipfs.io/ipfs/W2".to_string(),
+                "https://ipfs.io/ipfs/W3".to_string(),
+                "https://ipfs.io/ipfs/W4".to_string(),
+                "https://ipfs.io/ipfs/W5".to_string(),
+                "https://ipfs.io/ipfs/W6".to_string(),
+                "https://ipfs.io/ipfs/W7".to_string(),
+            ],
+            blue_gem_work_power: [
                 "22.5".to_string(),
                 "33.75".to_string(),
                 "56.25".to_string(),
@@ -198,8 +206,16 @@ pub mod env {
                 "236.25".to_string(),
                 "382.5".to_string(),
             ],
-            blue_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
-            gold_gem_work_power: vec![
+            blue_gem_uri: [
+                "https://ipfs.io/ipfs/B1".to_string(),
+                "https://ipfs.io/ipfs/B2".to_string(),
+                "https://ipfs.io/ipfs/B3".to_string(),
+                "https://ipfs.io/ipfs/B4".to_string(),
+                "https://ipfs.io/ipfs/B5".to_string(),
+                "https://ipfs.io/ipfs/B6".to_string(),
+                "https://ipfs.io/ipfs/B7".to_string(),
+            ],
+            gold_gem_work_power: [
                 "2".to_string(),
                 "3".to_string(),
                 "5".to_string(),
@@ -208,8 +224,16 @@ pub mod env {
                 "21".to_string(),
                 "34".to_string(),
             ],
-            gold_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
-            red_gem_work_power: vec![
+            gold_gem_uri: [
+                "https://ipfs.io/ipfs/G1".to_string(),
+                "https://ipfs.io/ipfs/G2".to_string(),
+                "https://ipfs.io/ipfs/G3".to_string(),
+                "https://ipfs.io/ipfs/G4".to_string(),
+                "https://ipfs.io/ipfs/G5".to_string(),
+                "https://ipfs.io/ipfs/G6".to_string(),
+                "https://ipfs.io/ipfs/G7".to_string(),
+            ],
+            red_gem_work_power: [
                 "22.5".to_string(),
                 "33.75".to_string(),
                 "56.25".to_string(),
@@ -218,8 +242,16 @@ pub mod env {
                 "236.25".to_string(),
                 "382.5".to_string(),
             ],
-            red_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
-            gem_ratio: vec![
+            red_gem_uri: [
+                "https://ipfs.io/ipfs/R1".to_string(),
+                "https://ipfs.io/ipfs/R2".to_string(),
+                "https://ipfs.io/ipfs/R3".to_string(),
+                "https://ipfs.io/ipfs/R4".to_string(),
+                "https://ipfs.io/ipfs/R5".to_string(),
+                "https://ipfs.io/ipfs/R6".to_string(),
+                "https://ipfs.io/ipfs/R7".to_string(),
+            ],
+            gem_ratio: [
                 "0.1".to_string(),
                 "0.2".to_string(),
                 "0.3".to_string(),
@@ -228,7 +260,7 @@ pub mod env {
                 "0.6".to_string(),
                 "0.7".to_string(),
             ],
-            gem_work_load: vec![
+            gem_work_load: [
                 "0.1".to_string(),
                 "0.2".to_string(),
                 "0.3".to_string(),
