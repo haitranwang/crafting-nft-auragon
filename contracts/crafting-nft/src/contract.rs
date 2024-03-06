@@ -286,7 +286,8 @@ pub fn execute_forge_gem(
 ) -> Result<Response, ContractError> {
     // Load the config
     let config = CONFIG.load(deps.storage)?;
-
+    // Load auragon uri
+    let auragon_uri = AURAGON_URI.load(deps.storage)?;
     // Load the nois_proxy
     let nois_proxy = config.nois_proxy;
 
@@ -327,9 +328,33 @@ pub fn execute_forge_gem(
     // Loop through user_list and forge the gem
     for user in user_list {
         // Mint the new gem NFT
-        let extension = GemMetadata {
+        let gem_trait = GemMetadata {
             color: "red".to_string(),
             star: 1,
+        };
+
+        let extension = Metadata {
+            attributes: vec![
+                Trait {
+                    display_type: None,
+                    trait_type: "color".to_string(),
+                    value: gem_trait.color.clone(),
+                },
+                Trait {
+                    display_type: None,
+                    trait_type: "star".to_string(),
+                    value: gem_trait.star.to_string(),
+                }
+            ].into(),
+            ..Default::default()
+        };
+
+        let token_uri = match gem_trait.color.as_str() {
+            "white" => auragon_uri.white[gem_trait.star as usize].clone(),
+            "blue" => auragon_uri.blue[gem_trait.star as usize].clone(),
+            "gold" => auragon_uri.gold[gem_trait.star as usize].clone(),
+            "red" => auragon_uri.red[gem_trait.star as usize].clone(),
+            _ => "".to_string(),
         };
 
         // Mint the new gem NFT from auragon_collection with token id increment by 1
@@ -338,14 +363,17 @@ pub fn execute_forge_gem(
         // Mint the new gem NFT from auragon_collection
         let mint_gem = wasm_execute(
             auragon_collection.to_string(),
-            &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+            &Cw721BaseExecuteMsg::Mint::<Metadata, Empty> {
                 token_id: latest_token_id.to_string(),
                 owner: user.user_addr.to_string(),
-                token_uri: None,
+                token_uri: Some(token_uri),
                 extension,
             },
             vec![],
         )?;
+
+        // Update the latest token id
+        AURAGON_LATEST_TOKEN_ID.save(deps.storage, &latest_token_id)?;
 
         res = res.add_message(mint_gem);
     }
