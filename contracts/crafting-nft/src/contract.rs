@@ -13,7 +13,7 @@ use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 use cw20::Cw20ExecuteMsg;
 use nois::{randomness_from_str, NoisCallback, ProxyExecuteMsg};
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{AuragonURI, Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, USERS_IN_QUEUE}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{AuragonURI, Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, SHIELD_URI, USERS_IN_QUEUE}};
 
 
 // version info for migration info
@@ -55,6 +55,8 @@ pub fn instantiate(
         },
     )?;
 
+    SHIELD_URI.save(deps.storage, &msg.shield_uri)?;
+
     // save the init RANDOM_SEED to the storage
     let randomness = randomness_from_str(msg.random_seed).unwrap();
     RANDOM_SEED.save(deps.storage, &randomness)?;
@@ -92,9 +94,9 @@ pub fn execute(
             auragon_collection,
             shield_collection,
         } => update_collection(deps, env, info, dragon_collection, auragon_collection, shield_collection),
-        ExecuteMsg::MintAuragonGem { owner, token_uri, extension
-        } => mint_auragon_gem(deps, env, info, owner, token_uri, extension),
-        ExecuteMsg::MintShieldGem { owner, token_uri } => mint_shield_gem(deps, env, info, owner, token_uri),
+        ExecuteMsg::MintAuragonGem { owner, gem_trait
+        } => mint_auragon_gem(deps, env, info, owner, gem_trait),
+        ExecuteMsg::MintShieldGem { owner } => mint_shield_gem(deps, env, info, owner),
     }
 }
 
@@ -399,7 +401,6 @@ pub fn mint_auragon_gem(
     env: Env,
     info: MessageInfo,
     owner: String,
-    token_uri: String,
     gem_trait: GemMetadata,
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
@@ -470,11 +471,12 @@ pub fn mint_shield_gem(
     env: Env,
     info: MessageInfo,
     owner: String,
-    token_uri: String,
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
     // Load the latest token id
     let mut latest_token_id = SHIELD_LATEST_TOKEN_ID.load(deps.storage)?;
+    // Load shield uri
+    let shield_uri = SHIELD_URI.load(deps.storage)?;
 
     // ensure_eq!(
     //     info.sender,
@@ -493,7 +495,7 @@ pub fn mint_shield_gem(
         &Cw721BaseExecuteMsg::Mint::<Metadata, Empty> {
             token_id: latest_token_id.to_string(),
             owner: owner.to_string(),
-            token_uri: Some(token_uri),
+            token_uri: Some(shield_uri),
             extension: Default::default(),
         },
         vec![],

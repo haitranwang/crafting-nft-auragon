@@ -21,6 +21,7 @@
       "red_gem_uri",
       "red_gem_work_power",
       "shield_collection",
+      "shield_uri",
       "white_gem_uri",
       "white_gem_work_power"
     ],
@@ -102,6 +103,9 @@
         "minItems": 7
       },
       "shield_collection": {
+        "type": "string"
+      },
+      "shield_uri": {
         "type": "string"
       },
       "white_gem_uri": {
@@ -249,18 +253,14 @@
           "mint_auragon_gem": {
             "type": "object",
             "required": [
-              "extension",
-              "owner",
-              "token_uri"
+              "gem_trait",
+              "owner"
             ],
             "properties": {
-              "extension": {
+              "gem_trait": {
                 "$ref": "#/definitions/GemMetadata"
               },
               "owner": {
-                "type": "string"
-              },
-              "token_uri": {
                 "type": "string"
               }
             },
@@ -278,14 +278,10 @@
           "mint_shield_gem": {
             "type": "object",
             "required": [
-              "owner",
-              "token_uri"
+              "owner"
             ],
             "properties": {
               "owner": {
-                "type": "string"
-              },
-              "token_uri": {
                 "type": "string"
               }
             },

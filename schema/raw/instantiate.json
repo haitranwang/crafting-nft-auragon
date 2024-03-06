@@ -17,6 +17,7 @@
     "red_gem_uri",
     "red_gem_work_power",
     "shield_collection",
+    "shield_uri",
     "white_gem_uri",
     "white_gem_work_power"
   ],
@@ -98,6 +99,9 @@
       "minItems": 7
     },
     "shield_collection": {
+      "type": "string"
+    },
+    "shield_uri": {
       "type": "string"
     },
     "white_gem_uri": {

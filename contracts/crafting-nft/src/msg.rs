@@ -33,6 +33,8 @@ pub struct InstantiateMsg {
     pub red_gem_work_power: [String; 7],
     // Red Gem uri
     pub red_gem_uri: [String; 7],
+    // Shield uri
+    pub shield_uri: String,
     // Gem Ratio
     pub gem_ratio: [String; 4],
     // Gem work load
@@ -64,12 +66,10 @@ pub enum ExecuteMsg {
     },
     MintAuragonGem {
         owner: String,
-        token_uri: String,
-        extension: GemMetadata,
+        gem_trait: GemMetadata,
     },
     MintShieldGem {
         owner: String,
-        token_uri: String,
     },
 }
 

@@ -157,3 +157,6 @@ pub const CURRENT_QUEUE_ID: Item<u64> = Item::new("current queue id");
 
 // Auragon URI
 pub const AURAGON_URI: Item<AuragonURI> = Item::new("auragon uri");
+
+// Shield URI
+pub const SHIELD_URI: Item<String> = Item::new("shield uri");

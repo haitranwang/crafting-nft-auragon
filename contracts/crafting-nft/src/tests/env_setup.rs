@@ -251,6 +251,7 @@ pub mod env {
                 "https://ipfs.io/ipfs/R6".to_string(),
                 "https://ipfs.io/ipfs/R7".to_string(),
             ],
+            shield_uri: "https://ipfs.io/ipfs/S1".to_string(),
             gem_ratio: [
                 "0.9".to_string(),
                 "0.08".to_string(),

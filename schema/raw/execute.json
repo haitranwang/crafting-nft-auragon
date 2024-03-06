@@ -124,18 +124,14 @@
         "mint_auragon_gem": {
           "type": "object",
           "required": [
-            "extension",
-            "owner",
-            "token_uri"
+            "gem_trait",
+            "owner"
           ],
           "properties": {
-            "extension": {
+            "gem_trait": {
               "$ref": "#/definitions/GemMetadata"
             },
             "owner": {
-              "type": "string"
-            },
-            "token_uri": {
               "type": "string"
             }
           },
@@ -153,14 +149,10 @@
         "mint_shield_gem": {
           "type": "object",
           "required": [
-            "owner",
-            "token_uri"
+            "owner"
           ],
           "properties": {
             "owner": {
-              "type": "string"
-            },
-            "token_uri": {
               "type": "string"
             }
           },
