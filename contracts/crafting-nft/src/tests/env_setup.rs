@@ -188,6 +188,7 @@ pub mod env {
                 "21".to_string(),
                 "34".to_string(),
             ],
+            white_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
             blue_gem_work_power: vec![
                 "22.5".to_string(),
                 "33.75".to_string(),
@@ -197,6 +198,7 @@ pub mod env {
                 "236.25".to_string(),
                 "382.5".to_string(),
             ],
+            blue_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
             gold_gem_work_power: vec![
                 "2".to_string(),
                 "3".to_string(),
@@ -206,6 +208,7 @@ pub mod env {
                 "21".to_string(),
                 "34".to_string(),
             ],
+            gold_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
             red_gem_work_power: vec![
                 "22.5".to_string(),
                 "33.75".to_string(),
@@ -215,6 +218,7 @@ pub mod env {
                 "236.25".to_string(),
                 "382.5".to_string(),
             ],
+            red_gem_uri: "https://ipfs.io/ipfs/QmZ6".to_string(),
             gem_ratio: vec![
                 "0.1".to_string(),
                 "0.2".to_string(),

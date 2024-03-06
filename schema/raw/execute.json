@@ -153,14 +153,10 @@
         "mint_shield_gem": {
           "type": "object",
           "required": [
-            "extension",
             "owner",
             "token_uri"
           ],
           "properties": {
-            "extension": {
-              "$ref": "#/definitions/GemMetadata"
-            },
             "owner": {
               "type": "string"
             },

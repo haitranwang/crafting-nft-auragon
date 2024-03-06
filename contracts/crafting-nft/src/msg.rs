@@ -19,12 +19,20 @@ pub struct InstantiateMsg {
     pub shield_collection: String,
     // White Gem Work Power
     pub white_gem_work_power: Vec<String>,
+    // White Gem uri
+    pub white_gem_uri: String,
     // Blue Gem Work Power
     pub blue_gem_work_power: Vec<String>,
+    // Blue Gem uri
+    pub blue_gem_uri: String,
     // Gold Gem Work Power
     pub gold_gem_work_power: Vec<String>,
+    // Gold Gem uri
+    pub gold_gem_uri: String,
     // Red Gem Work Power
     pub red_gem_work_power: Vec<String>,
+    // Red Gem uri
+    pub red_gem_uri: String,
     // Gem Ratio
     pub gem_ratio: Vec<String>,
     // Gem work load
@@ -62,7 +70,6 @@ pub enum ExecuteMsg {
     MintShieldGem {
         owner: String,
         token_uri: String,
-        extension: GemMetadata,
     },
 }
 

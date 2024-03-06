@@ -5,19 +5,26 @@
   "type": "object",
   "required": [
     "auragon_collection",
+    "blue_gem_uri",
     "blue_gem_work_power",
     "dragon_collection",
     "gem_ratio",
     "gem_work_load",
+    "gold_gem_uri",
     "gold_gem_work_power",
     "nois_proxy",
     "random_seed",
+    "red_gem_uri",
     "red_gem_work_power",
     "shield_collection",
+    "white_gem_uri",
     "white_gem_work_power"
   ],
   "properties": {
     "auragon_collection": {
+      "type": "string"
+    },
+    "blue_gem_uri": {
       "type": "string"
     },
     "blue_gem_work_power": {
@@ -41,6 +48,9 @@
         "type": "string"
       }
     },
+    "gold_gem_uri": {
+      "type": "string"
+    },
     "gold_gem_work_power": {
       "type": "array",
       "items": {
@@ -53,6 +63,9 @@
     "random_seed": {
       "type": "string"
     },
+    "red_gem_uri": {
+      "type": "string"
+    },
     "red_gem_work_power": {
       "type": "array",
       "items": {
@@ -60,6 +73,9 @@
       }
     },
     "shield_collection": {
+      "type": "string"
+    },
+    "white_gem_uri": {
       "type": "string"
     },
     "white_gem_work_power": {

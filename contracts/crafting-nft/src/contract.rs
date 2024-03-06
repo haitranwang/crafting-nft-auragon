@@ -13,7 +13,7 @@ use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 use cw20::Cw20ExecuteMsg;
 use nois::{randomness_from_str, NoisCallback, ProxyExecuteMsg};
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, RandomJob, UserInfo, AURAGON_LATEST_TOKEN_ID, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, USERS_IN_QUEUE}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, USERS_IN_QUEUE}};
 
 
 // version info for migration info
@@ -84,7 +84,7 @@ pub fn execute(
         } => update_collection(deps, env, info, dragon_collection, auragon_collection, shield_collection),
         ExecuteMsg::MintAuragonGem { owner, token_uri, extension
         } => mint_auragon_gem(deps, env, info, owner, token_uri, extension),
-        ExecuteMsg::MintShieldGem { owner, token_uri, extension } => mint_shield_gem(deps, env, info, owner, token_uri, extension),
+        ExecuteMsg::MintShieldGem { owner, token_uri } => mint_shield_gem(deps, env, info, owner, token_uri),
     }
 }
 
@@ -407,10 +407,26 @@ pub fn mint_auragon_gem(
     // Mint the new gem NFT from auragon_collection with token id increment by 1
     latest_token_id += 1;
 
+    let extension = Metadata {
+        attributes: vec![
+            Trait {
+                display_type: None,
+                trait_type: "color".to_string(),
+                value: extension.color,
+            },
+            Trait {
+                display_type: None,
+                trait_type: "star".to_string(),
+                value: extension.star.to_string(),
+            }
+        ].into(),
+        ..Default::default()
+    };
+
     // Mint the new gem NFT from auragon_collection
     let mint_gem = wasm_execute(
         auragon_collection.to_string(),
-        &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+        &Cw721BaseExecuteMsg::Mint::<Metadata, Empty> {
             token_id: latest_token_id.to_string(),
             owner: owner.to_string(),
             token_uri: Some(token_uri),
@@ -435,7 +451,6 @@ pub fn mint_shield_gem(
     info: MessageInfo,
     owner: String,
     token_uri: String,
-    extension: GemMetadata,
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
     // Load the latest token id
@@ -455,11 +470,11 @@ pub fn mint_shield_gem(
     // Mint the new gem NFT from shield_collection
     let mint_gem = wasm_execute(
         shield_collection.to_string(),
-        &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
+        &Cw721BaseExecuteMsg::Mint::<Metadata, Empty> {
             token_id: latest_token_id.to_string(),
             owner: owner.to_string(),
             token_uri: Some(token_uri),
-            extension,
+            extension: Default::default(),
         },
         vec![],
     )?;
