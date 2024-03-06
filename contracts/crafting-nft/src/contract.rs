@@ -317,8 +317,7 @@ pub fn execute_forge_gem(
         // Mint the new gem NFT
         let extension = GemMetadata {
             color: "red".to_string(),
-            level: 1,
-            work_power: Decimal::from_str("360").unwrap(),
+            star: 1,
         };
 
         // Mint the new gem NFT from auragon_collection with token id increment by 1
@@ -387,7 +386,7 @@ pub fn update_collection(
 
 pub fn mint_auragon_gem(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     owner: String,
     token_uri: String,
@@ -413,7 +412,7 @@ pub fn mint_auragon_gem(
         auragon_collection.to_string(),
         &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
             token_id: latest_token_id.to_string(),
-            owner: info.sender.to_string(),
+            owner: owner.to_string(),
             token_uri: Some(token_uri),
             extension,
         },
@@ -432,7 +431,7 @@ pub fn mint_auragon_gem(
 
 pub fn mint_shield_gem(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     owner: String,
     token_uri: String,
@@ -458,7 +457,7 @@ pub fn mint_shield_gem(
         shield_collection.to_string(),
         &Cw721BaseExecuteMsg::Mint::<GemMetadata, Empty> {
             token_id: latest_token_id.to_string(),
-            owner: info.sender.to_string(),
+            owner: owner.to_string(),
             token_uri: Some(token_uri),
             extension,
         },

@@ -37,8 +37,7 @@ pub struct RandomJob {
 #[derive(Default)]
 pub struct GemMetadata {
     pub color: String,
-    pub level: u8,
-    pub work_power: Decimal,
+    pub star: u8,
 }
 
 pub const WHITE_GEM_WORK_POWER: Item<[Decimal; 7]> = Item::new("white gem work power");
