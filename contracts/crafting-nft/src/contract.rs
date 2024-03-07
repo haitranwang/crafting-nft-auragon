@@ -410,7 +410,7 @@ pub fn execute_forge_gem(
 
     // Get user_user_success_rate_list from forge_gem_list
     let user_win_rate_list: Vec<(Addr, Decimal)> = forge_gem_list.iter().map(|forge_gem| {
-        (forge_gem.user_addr.clone(), forge_gem.success_rate.clone())
+        (forge_gem.user_addr.clone(), Decimal::from_str(forge_gem.success_rate.as_str()).unwrap())
     }).collect();
 
     // Make randomness request message to NOIS proxy contract

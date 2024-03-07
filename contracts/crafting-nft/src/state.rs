@@ -46,7 +46,7 @@ pub struct RequestForgeGemInfo {
     pub user_addr: Addr,
     pub gem_base: GemInfo,
     pub gem_materials: Vec<GemInfo>,
-    pub success_rate: Decimal,
+    pub success_rate: String,
     pub shield_id: Option<String>,
 }
 
