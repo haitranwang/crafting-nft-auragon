@@ -2,7 +2,7 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Decimal;
 use nois::NoisCallback;
 
-use crate::state::{Config, GemInfo, GemMetadata, UserInfo};
+use crate::state::{Config, GemInfo, GemMetadata, RequestForgeGemInfo, UserInfo};
 
 
 /// Message type for `instantiate` entry_point
@@ -53,6 +53,11 @@ pub enum ExecuteMsg {
     },
     // Forging gem
     ForgeGem {
+        request_forge_id: String,
+        forge_gem_list: Vec<RequestForgeGemInfo>,
+    },
+    // Forging gem
+    ForgeGemType1 {
         user_list: Vec<UserInfo>,
     },
     // Nois callback

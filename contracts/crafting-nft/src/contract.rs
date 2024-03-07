@@ -13,7 +13,7 @@ use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 use cw20::Cw20ExecuteMsg;
 use nois::{randomness_from_str, NoisCallback, ProxyExecuteMsg};
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{AuragonURI, Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, BLUE_GEM_WORK_POWER, CONFIG, CURRENT_QUEUE_ID, GEM_RATIO, GEM_WORK_LOAD, GOLD_GEM_WORK_POWER, RANDOM_JOBS, RANDOM_SEED, RED_GEM_WORK_POWER, SHIELD_LATEST_TOKEN_ID, SHIELD_URI, USERS_IN_QUEUE, WHITE_GEM_WORK_POWER}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{AuragonURI, Config, GemInfo, GemMetadata, Metadata, RandomJob, RequestForgeGemInfo, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, BLUE_GEM_WORK_POWER, CONFIG, CURRENT_QUEUE_ID, GEM_RATIO, GEM_WORK_LOAD, GOLD_GEM_WORK_POWER, RANDOM_JOBS, RANDOM_SEED, RED_GEM_WORK_POWER, SHIELD_LATEST_TOKEN_ID, SHIELD_URI, USERS_IN_QUEUE, WHITE_GEM_WORK_POWER}};
 
 
 // version info for migration info
@@ -97,7 +97,9 @@ pub fn execute(
             gem_materials,
             shield_id,
         } => execute_join_queue(deps, env, info, gem_base, gem_materials, shield_id),
-        ExecuteMsg::ForgeGem { user_list } => execute_forge_gem(deps, env, info, user_list),
+        ExecuteMsg::ForgeGem { request_forge_id, forge_gem_list }
+            => execute_forge_gem(deps, env, info, request_forge_id, forge_gem_list),
+        ExecuteMsg::ForgeGemType1 { user_list } => execute_forge_gem_type_1(deps, env, info, user_list),
         //nois callback
         ExecuteMsg::NoisReceive { callback } => nois_receive(deps, env, info, callback),
         ExecuteMsg::UpdateCollection {
@@ -293,6 +295,149 @@ pub fn execute_forge_gem(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
+    request_forge_id: String,
+    forge_gem_list: Vec<RequestForgeGemInfo>,
+) -> Result<Response, ContractError> {
+    // Load the config
+    let config = CONFIG.load(deps.storage)?;
+    // Load auragon uri
+    let auragon_uri = AURAGON_URI.load(deps.storage)?;
+    // Load the nois_proxy
+    let nois_proxy = config.nois_proxy;
+
+    // Load the auragon_collection
+    let auragon_collection = config.auragon_collection;
+
+    // Load the shield_collection
+    let shield_collection = config.shield_collection;
+
+    // Get user address list from forge_gem_list
+    let user_addr_list: Vec<Addr> = forge_gem_list.iter().map(|forge_gem| {
+        forge_gem.user_addr.clone()
+    }).collect();
+
+    // Get gem_base list from forge_gem_list
+    let gem_base_list: Vec<GemInfo> = forge_gem_list.iter().map(|forge_gem| {
+        forge_gem.gem_base.clone()
+    }).collect();
+
+    // Check owner of gem_base should be the same as the user_addr
+    for (user_addr, gem_base) in user_addr_list.iter().zip(gem_base_list.iter()) {
+        let query_msg = Cw721QueryMsg::OwnerOf {
+            token_id: gem_base.nft_id.clone(),
+            include_expired: None,
+        };
+
+        let query_response: StdResult<cw721::OwnerOfResponse> =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: gem_base.nft_contract.to_string(),
+            msg: to_json_binary(&query_msg).unwrap(),
+        }));
+
+        match query_response {
+            Ok(response) => {
+                if response.owner != user_addr.to_string() {
+                    return Err(ContractError::Unauthorized {});
+                }
+            },
+            Err(_) => return Err(ContractError::Unauthorized {}),
+        }
+    }
+
+    // Get gem_materials list from forge_gem_list
+    let gem_materials_list: Vec<Vec<GemInfo>> = forge_gem_list.iter().map(|forge_gem| {
+        forge_gem.gem_materials.clone()
+    }).collect();
+
+    // Check owner of gem_materials should be the same as the user_addr
+    for (user_addr, gem_materials) in user_addr_list.iter().zip(gem_materials_list.iter()) {
+        for gem_material in gem_materials {
+            let query_msg = Cw721QueryMsg::OwnerOf {
+                token_id: gem_material.nft_id.clone(),
+                include_expired: None,
+            };
+
+            let query_response: StdResult<cw721::OwnerOfResponse> =
+            deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: gem_material.nft_contract.to_string(),
+                msg: to_json_binary(&query_msg).unwrap(),
+            }));
+
+            match query_response {
+                Ok(response) => {
+                    if response.owner != user_addr.to_string() {
+                        return Err(ContractError::Unauthorized {});
+                    }
+                },
+                Err(_) => return Err(ContractError::Unauthorized {}),
+            }
+        }
+    }
+
+    // Get shield_id list from forge_gem_list
+    let shield_id_list: Vec<Option<String>> = forge_gem_list.iter().map(|forge_gem| {
+        forge_gem.shield_id.clone()
+    }).collect();
+
+    // Check owner of shield_id should be the same as the user_addr
+    for (user_addr, shield_id) in user_addr_list.iter().zip(shield_id_list.iter()) {
+        if let Some(ref shield_id) = shield_id {
+            let query_msg = Cw721QueryMsg::OwnerOf {
+                token_id: shield_id.clone(),
+                include_expired: None,
+            };
+
+            let query_response: StdResult<cw721::OwnerOfResponse> =
+            deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: shield_collection.to_string(),
+                msg: to_json_binary(&query_msg).unwrap(),
+            }));
+
+            match query_response {
+                Ok(response) => {
+                    if response.owner != user_addr.to_string() {
+                        return Err(ContractError::Unauthorized {});
+                    }
+                },
+                Err(_) => return Err(ContractError::Unauthorized {}),
+            }
+        }
+    }
+
+    let funds = info.funds;
+
+    let mut res = Response::new();
+
+    // Get user_user_success_rate_list from forge_gem_list
+    let user_win_rate_list: Vec<(Addr, Decimal)> = forge_gem_list.iter().map(|forge_gem| {
+        (forge_gem.user_addr.clone(), forge_gem.success_rate.clone())
+    }).collect();
+
+    // Make randomness request message to NOIS proxy contract
+    let msg_make_randomess = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: nois_proxy.into(),
+        msg: to_json_binary(&ProxyExecuteMsg::GetNextRandomness {
+            job_id: request_forge_id.clone(),
+        })?,
+        funds,
+    });
+
+    res = res.add_message(msg_make_randomess);
+
+    // save job for mapping callback response to request
+    let random_job = RandomJob {
+        user_win_rate_list,
+        timestamp: env.block.time,
+    };
+
+    RANDOM_JOBS.save(deps.storage, request_forge_id.clone(), &random_job)?;
+    Ok(res)
+}
+
+pub fn execute_forge_gem_type_1(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
     user_list: Vec<UserInfo>,
 ) -> Result<Response, ContractError> {
     // Load the config
@@ -333,7 +478,6 @@ pub fn execute_forge_gem(
 
     // save job for mapping callback response to request
     let random_job = RandomJob {
-        player: info.sender.clone(),
         user_win_rate_list,
         timestamp: env.block.time,
     };
@@ -586,7 +730,6 @@ pub fn nois_receive(
 
     select_gem_rewards(
         deps.storage,
-        random_job.player,
         randomness,
         key,
         random_job.timestamp,
@@ -602,7 +745,6 @@ pub fn nois_receive(
 
 fn select_gem_rewards(
     storage: &mut dyn Storage,
-    player: Addr,
     randomness: [u8; 32],
     key: String,
     forges: Timestamp,

@@ -37,9 +37,17 @@ pub struct UserInfo {
 
 #[cw_serde]
 pub struct RandomJob {
-    pub player: Addr,
     pub user_win_rate_list: Vec<(Addr, Decimal)>,
     pub timestamp: Timestamp,
+}
+
+#[cw_serde]
+pub struct RequestForgeGemInfo {
+    pub user_addr: Addr,
+    pub gem_base: GemInfo,
+    pub gem_materials: Vec<GemInfo>,
+    pub success_rate: Decimal,
+    pub shield_id: Option<String>,
 }
 
 #[cw_serde]
