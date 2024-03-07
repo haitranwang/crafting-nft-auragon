@@ -1,6 +1,8 @@
 #[cfg(test)]
 pub mod env {
-    use cosmwasm_std::{Addr, Coin, Empty, Uint128};
+    use std::str::FromStr;
+
+    use cosmwasm_std::{Addr, Coin, Decimal, Empty, Uint128};
     use cw20::MinterResponse;
     use cw721::Cw721ExecuteMsg;
     use cw721_base::{InstantiateMsg as Cw721InstantiateMsg, ExecuteMsg as Cw721BaseExecuteMsg, QueryMsg as Cw721BaseQueryMsg};
@@ -180,13 +182,13 @@ pub mod env {
             auragon_collection: auragon_collection_contract_addr.to_string(),
             shield_collection: shield_collection_contract_addr.to_string(),
             white_gem_work_power: [
-                "2".to_string(),
-                "3".to_string(),
-                "5".to_string(),
-                "8".to_string(),
-                "13".to_string(),
-                "21".to_string(),
-                "34".to_string(),
+                Decimal::from_str("2").unwrap(),
+                Decimal::from_str("3").unwrap(),
+                Decimal::from_str("5").unwrap(),
+                Decimal::from_str("8").unwrap(),
+                Decimal::from_str("13").unwrap(),
+                Decimal::from_str("21").unwrap(),
+                Decimal::from_str("34").unwrap(),
             ],
             white_gem_uri: [
                 "https://ipfs.io/ipfs/W1".to_string(),
@@ -198,13 +200,13 @@ pub mod env {
                 "https://ipfs.io/ipfs/W7".to_string(),
             ],
             blue_gem_work_power: [
-                "22.5".to_string(),
-                "33.75".to_string(),
-                "56.25".to_string(),
-                "90".to_string(),
-                "146.25".to_string(),
-                "236.25".to_string(),
-                "382.5".to_string(),
+                Decimal::from_str("22.5").unwrap(),
+                Decimal::from_str("33.75").unwrap(),
+                Decimal::from_str("56.25").unwrap(),
+                Decimal::from_str("90").unwrap(),
+                Decimal::from_str("146.25").unwrap(),
+                Decimal::from_str("236.25").unwrap(),
+                Decimal::from_str("382.5").unwrap(),
             ],
             blue_gem_uri: [
                 "https://ipfs.io/ipfs/B1".to_string(),
@@ -216,13 +218,13 @@ pub mod env {
                 "https://ipfs.io/ipfs/B7".to_string(),
             ],
             gold_gem_work_power: [
-                "2".to_string(),
-                "3".to_string(),
-                "5".to_string(),
-                "8".to_string(),
-                "13".to_string(),
-                "21".to_string(),
-                "34".to_string(),
+                Decimal::from_str("2").unwrap(),
+                Decimal::from_str("3").unwrap(),
+                Decimal::from_str("5").unwrap(),
+                Decimal::from_str("8").unwrap(),
+                Decimal::from_str("13").unwrap(),
+                Decimal::from_str("21").unwrap(),
+                Decimal::from_str("34").unwrap(),
             ],
             gold_gem_uri: [
                 "https://ipfs.io/ipfs/G1".to_string(),
@@ -234,13 +236,13 @@ pub mod env {
                 "https://ipfs.io/ipfs/G7".to_string(),
             ],
             red_gem_work_power: [
-                "22.5".to_string(),
-                "33.75".to_string(),
-                "56.25".to_string(),
-                "90".to_string(),
-                "146.25".to_string(),
-                "236.25".to_string(),
-                "382.5".to_string(),
+                Decimal::from_str("22.5").unwrap(),
+                Decimal::from_str("33.75").unwrap(),
+                Decimal::from_str("56.25").unwrap(),
+                Decimal::from_str("90").unwrap(),
+                Decimal::from_str("146.25").unwrap(),
+                Decimal::from_str("236.25").unwrap(),
+                Decimal::from_str("382.5").unwrap(),
             ],
             red_gem_uri: [
                 "https://ipfs.io/ipfs/R1".to_string(),
@@ -253,19 +255,18 @@ pub mod env {
             ],
             shield_uri: "https://ipfs.io/ipfs/S1".to_string(),
             gem_ratio: [
-                "0.9".to_string(),
-                "0.08".to_string(),
-                "0.015".to_string(),
-                "0.005".to_string(),
+                Decimal::from_str("0.9").unwrap(),
+                Decimal::from_str("0.08").unwrap(),
+                Decimal::from_str("0.015").unwrap(),
+                Decimal::from_str("0.005").unwrap(),
             ],
             gem_work_load: [
-                "0.1".to_string(),
-                "0.2".to_string(),
-                "0.3".to_string(),
-                "0.4".to_string(),
-                "0.5".to_string(),
-                "0.6".to_string(),
-                "0.7".to_string(),
+                Decimal::from_str("0.1").unwrap(),
+                Decimal::from_str("0.2").unwrap(),
+                Decimal::from_str("0.3").unwrap(),
+                Decimal::from_str("0.4").unwrap(),
+                Decimal::from_str("0.5").unwrap(),
+                Decimal::from_str("0.6").unwrap(),
             ],
         };
 

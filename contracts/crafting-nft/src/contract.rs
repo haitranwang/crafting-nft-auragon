@@ -60,7 +60,18 @@ pub fn instantiate(
     // save the init RANDOM_SEED to the storage
     let randomness = randomness_from_str(msg.random_seed).unwrap();
     RANDOM_SEED.save(deps.storage, &randomness)?;
-
+    // save white gem work power to the storage
+    WHITE_GEM_WORK_POWER.save(deps.storage, &msg.white_gem_work_power)?;
+    // save blue gem work power to the storage
+    BLUE_GEM_WORK_POWER.save(deps.storage, &msg.blue_gem_work_power)?;
+    // save gold gem work power to the storage
+    GOLD_GEM_WORK_POWER.save(deps.storage, &msg.gold_gem_work_power)?;
+    // save red gem work power to the storage
+    RED_GEM_WORK_POWER.save(deps.storage, &msg.red_gem_work_power)?;
+    // save gem ratio to the storage
+    GEM_RATIO.save(deps.storage, &msg.gem_ratio)?;
+    // save gem work load to the storage
+    GEM_WORK_LOAD.save(deps.storage, &msg.gem_work_load)?;
     // Initialize the token id
     AURAGON_LATEST_TOKEN_ID.save(deps.storage, &0)?;
     SHIELD_LATEST_TOKEN_ID.save(deps.storage, &0)?;

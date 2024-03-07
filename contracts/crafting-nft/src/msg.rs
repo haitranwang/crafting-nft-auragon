@@ -1,4 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Decimal;
 use nois::NoisCallback;
 
 use crate::state::{Config, GemInfo, GemMetadata, UserInfo};
@@ -18,27 +19,27 @@ pub struct InstantiateMsg {
     // Shield NFT Collection address
     pub shield_collection: String,
     // White Gem Work Power
-    pub white_gem_work_power: [String; 7],
+    pub white_gem_work_power: [Decimal; 7],
     // White Gem uri
     pub white_gem_uri: [String; 7],
     // Blue Gem Work Power
-    pub blue_gem_work_power: [String; 7],
+    pub blue_gem_work_power: [Decimal; 7],
     // Blue Gem uri
     pub blue_gem_uri: [String; 7],
     // Gold Gem Work Power
-    pub gold_gem_work_power: [String; 7],
+    pub gold_gem_work_power: [Decimal; 7],
     // Gold Gem uri
     pub gold_gem_uri: [String; 7],
     // Red Gem Work Power
-    pub red_gem_work_power: [String; 7],
+    pub red_gem_work_power: [Decimal; 7],
     // Red Gem uri
     pub red_gem_uri: [String; 7],
     // Shield uri
     pub shield_uri: String,
     // Gem Ratio
-    pub gem_ratio: [String; 4],
+    pub gem_ratio: [Decimal; 4],
     // Gem work load
-    pub gem_work_load: [String; 7],
+    pub gem_work_load: [Decimal; 6],
 }
 
 /// Message type for `execute` entry_point

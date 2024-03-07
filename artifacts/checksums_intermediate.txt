@@ -1,1 +1,1 @@
-4b6efb125f76fd84fddb206f42190e31fc18d9acda98b543fecdf41eb47603c9  target/wasm32-unknown-unknown/release/crafting_nft.wasm
+b5699df7ea59df8b720ce8e37327b3d1b41740fc2d047d0c69c216558c754ecd  target/wasm32-unknown-unknown/release/crafting_nft.wasm

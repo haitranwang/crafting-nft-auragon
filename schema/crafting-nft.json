@@ -40,7 +40,7 @@
       "blue_gem_work_power": {
         "type": "array",
         "items": {
-          "type": "string"
+          "$ref": "#/definitions/Decimal"
         },
         "maxItems": 7,
         "minItems": 7
@@ -51,7 +51,7 @@
       "gem_ratio": {
         "type": "array",
         "items": {
-          "type": "string"
+          "$ref": "#/definitions/Decimal"
         },
         "maxItems": 4,
         "minItems": 4
@@ -59,10 +59,10 @@
       "gem_work_load": {
         "type": "array",
         "items": {
-          "type": "string"
+          "$ref": "#/definitions/Decimal"
         },
-        "maxItems": 7,
-        "minItems": 7
+        "maxItems": 6,
+        "minItems": 6
       },
       "gold_gem_uri": {
         "type": "array",
@@ -75,7 +75,7 @@
       "gold_gem_work_power": {
         "type": "array",
         "items": {
-          "type": "string"
+          "$ref": "#/definitions/Decimal"
         },
         "maxItems": 7,
         "minItems": 7
@@ -97,7 +97,7 @@
       "red_gem_work_power": {
         "type": "array",
         "items": {
-          "type": "string"
+          "$ref": "#/definitions/Decimal"
         },
         "maxItems": 7,
         "minItems": 7
@@ -119,13 +119,19 @@
       "white_gem_work_power": {
         "type": "array",
         "items": {
-          "type": "string"
+          "$ref": "#/definitions/Decimal"
         },
         "maxItems": 7,
         "minItems": 7
       }
     },
-    "additionalProperties": false
+    "additionalProperties": false,
+    "definitions": {
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
+      }
+    }
   },
   "execute": {
     "$schema": "http://json-schema.org/draft-07/schema#",
