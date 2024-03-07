@@ -38,6 +38,7 @@ pub struct UserInfo {
 #[cw_serde]
 pub struct RandomJob {
     pub player: Addr,
+    pub user_win_rate_list: Vec<(Addr, Decimal)>,
     pub timestamp: Timestamp,
 }
 

@@ -3,17 +3,17 @@ use std::str::FromStr;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    ensure_eq, has_coins, to_json_binary, wasm_execute, Addr, Api, BalanceResponse, BankMsg, BankQuery, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, QueryRequest, Response, StdResult, Storage, Timestamp, Uint128, WasmMsg
+    ensure_eq, has_coins, to_binary, to_json_binary, wasm_execute, Addr, Api, BalanceResponse, BankMsg, BankQuery, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, QueryRequest, Response, StdResult, Storage, Timestamp, Uint128, WasmMsg, WasmQuery
 };
 use cw2::set_contract_version;
 
-use cw721::Cw721ExecuteMsg;
+use cw721::{Cw721ExecuteMsg, Cw721QueryMsg, NftInfoResponse};
 use cw721_base::ExecuteMsg as Cw721BaseExecuteMsg;
 
 use cw20::Cw20ExecuteMsg;
 use nois::{randomness_from_str, NoisCallback, ProxyExecuteMsg};
 
-use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{AuragonURI, Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, CONFIG, CURRENT_QUEUE_ID, RANDOM_JOBS, RANDOM_SEED, SHIELD_LATEST_TOKEN_ID, SHIELD_URI, USERS_IN_QUEUE}};
+use crate::{error::ContractError, msg::{ExecuteMsg, InstantiateMsg, QueryMsg}, state::{AuragonURI, Config, GemInfo, GemMetadata, Metadata, RandomJob, Trait, UserInfo, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, BLUE_GEM_WORK_POWER, CONFIG, CURRENT_QUEUE_ID, GEM_RATIO, GEM_WORK_LOAD, GOLD_GEM_WORK_POWER, RANDOM_JOBS, RANDOM_SEED, RED_GEM_WORK_POWER, SHIELD_LATEST_TOKEN_ID, SHIELD_URI, USERS_IN_QUEUE, WHITE_GEM_WORK_POWER}};
 
 
 // version info for migration info
@@ -300,11 +300,14 @@ pub fn execute_forge_gem(
     // Load the latest token id
     let mut latest_token_id = AURAGON_LATEST_TOKEN_ID.load(deps.storage)?;
 
-    let job_id = format!("{}/{}", info.sender, env.block.time);
+    let job_id = format!("{}/{}", env.block.time, info.sender);
 
     let mut funds = info.funds;
 
     let mut res = Response::new();
+
+    // A list of user and their win rate
+    let user_win_rate_list: Vec<(Addr, Decimal)> = convert_to_user_win_rate_list(&deps, user_list.clone());
 
     // Make randomness request message to NOIS proxy contract
     let msg_make_randomess = CosmosMsg::Wasm(WasmMsg::Execute {
@@ -320,6 +323,7 @@ pub fn execute_forge_gem(
     // save job for mapping callback response to request
     let random_job = RandomJob {
         player: info.sender.clone(),
+        user_win_rate_list,
         timestamp: env.block.time,
     };
 
@@ -596,6 +600,167 @@ fn select_gem_rewards(
     RANDOM_SEED.save(storage, &randomness)?;
 
     Ok(())
+}
+
+fn convert_to_user_win_rate_list(deps: &DepsMut, user_list: Vec<UserInfo>) -> Vec<(Addr, Decimal)> {
+    // get CONFIG
+    let config: Config = CONFIG.load(deps.storage).unwrap();
+    // get white gem work power
+    let white_gem_work_power = WHITE_GEM_WORK_POWER.load(deps.storage).unwrap();
+    // get blue gem work power
+    let blue_gem_work_power = BLUE_GEM_WORK_POWER.load(deps.storage).unwrap();
+    // get gold gem work power
+    let gold_gem_work_power = GOLD_GEM_WORK_POWER.load(deps.storage).unwrap();
+    // get red gem work power
+    let red_gem_work_power = RED_GEM_WORK_POWER.load(deps.storage).unwrap();
+    // get gem ratio
+    let gem_ratio = GEM_RATIO.load(deps.storage).unwrap();
+    // get gem work load from n star to n+1 star
+    let gem_work_load = GEM_WORK_LOAD.load(deps.storage).unwrap();
+    // get dragon_collection
+    let dragon_collection = config.dragon_collection;
+    // get gem_base nft_id
+    let gem_base_nft_id_user_list: Vec<String> = user_list.iter().map(|user| user.gem_base.nft_id.clone()).collect();
+    // get gem_base nft_contract
+    let gem_base_nft_contract_user_list: Vec<Addr> = user_list.iter().map(|user| user.gem_base.nft_contract.clone()).collect();
+    // get gem_materials nft_id
+    let gem_materials_nft_id_user_list: Vec<Vec<String>> = user_list.iter().map(|user| user.gem_materials.iter().map(|gem| gem.nft_id.clone()).collect()).collect();
+    // get gem_materials nft_contract
+    let gem_materials_nft_contract_user_list: Vec<Vec<Addr>> = user_list.iter().map(|user| user.gem_materials.iter().map(|gem| gem.nft_contract.clone()).collect()).collect();
+    // loop through gem_base_nft_contract_user_list and gem_base_nft_id_user_list and get token uri if contract is dragon_collection and get color and star if contract is auragon_collection
+    let gem_base_nft_color_and_star_user_list: Vec<String>
+        = gem_base_nft_contract_user_list.iter().zip(gem_base_nft_id_user_list.iter()).map(|(contract, id)| {
+        if contract == &dragon_collection {
+            let query_msg = Cw721QueryMsg::NftInfo { token_id: id.clone() };
+
+            let query_response: StdResult<cw721::NftInfoResponse<Metadata>> =
+            deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: contract.to_string(),
+                msg: to_json_binary(&query_msg).unwrap(),
+            }));
+
+            match query_response {
+                Ok(response) => {
+                    match response.token_uri.unwrap().as_str() {
+                        "ipfs://Qme1dXSRNSqYvVQSDEmoL6WHMLqrYajZkszYhbRGj2F2oa" => "white-1".to_string(),
+                        "ipfs://QmSp3iYpenTNr69g2EDSS128Vs1oRV2EHW8vakZ2Ro8G6P" => "blue-1".to_string(),
+                        "ipfs://QmQP3N4jxJKGXPx18PgrjdhGLqYjX2qtinZ4q4YBeQhpw7" => "gold-1".to_string(),
+                        "ipfs://QmTUy7E1UnLcbasfQap38kfxBAsFWzPfLmQimTh7pNw4QT" => "red-1".to_string(),
+                        _ => "".to_string()
+                    }
+                },
+                Err(_) => "".to_string()
+            }
+        } else {
+            let query_msg = Cw721QueryMsg::NftInfo { token_id: id.clone() };
+
+            let query_response: StdResult<cw721::NftInfoResponse<Metadata>> =
+            deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: contract.to_string(),
+                msg: to_json_binary(&query_msg).unwrap(),
+            }));
+
+            match query_response {
+                Ok(response) => {
+                    match response.extension.attributes.as_ref().unwrap()[0].value.as_str() {
+                        "white" => "white-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                        "blue" => "blue-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                        "gold" => "gold-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                        "red" => "red-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                        _ => "".to_string()
+                    }
+                },
+                Err(_) => "".to_string()
+            }
+        }
+    }).collect();
+    // loop through gem_materials_nft_contract_user_list and gem_materials_nft_id_user_list and get token uri if contract is dragon_collection and get color and star if contract is auragon_collection
+    let gem_materials_nft_color_and_star_user_list: Vec<Vec<String>>
+        = gem_materials_nft_contract_user_list.iter().zip(gem_materials_nft_id_user_list.iter()).map(|(contract, id)| {
+        contract.iter().zip(id.iter()).map(|(contract, id)| {
+            if contract == &dragon_collection {
+                let query_msg = Cw721QueryMsg::NftInfo { token_id: id.clone() };
+
+                let query_response: StdResult<cw721::NftInfoResponse<Metadata>> =
+                deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                    contract_addr: contract.to_string(),
+                    msg: to_json_binary(&query_msg).unwrap(),
+                }));
+
+                match query_response {
+                    Ok(response) => {
+                        match response.token_uri.unwrap().as_str() {
+                            "ipfs://Qme1dXSRNSqYvVQSDEmoL6WHMLqrYajZkszYhbRGj2F2oa" => "white-1".to_string(),
+                            "ipfs://QmSp3iYpenTNr69g2EDSS128Vs1oRV2EHW8vakZ2Ro8G6P" => "blue-1".to_string(),
+                            "ipfs://QmQP3N4jxJKGXPx18PgrjdhGLqYjX2qtinZ4q4YBeQhpw7" => "gold-1".to_string(),
+                            "ipfs://QmTUy7E1UnLcbasfQap38kfxBAsFWzPfLmQimTh7pNw4QT" => "red-1".to_string(),
+                            _ => "".to_string()
+                        }
+                    },
+                    Err(_) => "".to_string()
+                }
+            } else {
+                let query_msg = Cw721QueryMsg::NftInfo { token_id: id.clone() };
+
+                let query_response: StdResult<cw721::NftInfoResponse<Metadata>> =
+                deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                    contract_addr: contract.to_string(),
+                    msg: to_json_binary(&query_msg).unwrap(),
+                }));
+
+                match query_response {
+                    Ok(response) => {
+                        match response.extension.attributes.as_ref().unwrap()[0].value.as_str() {
+                            "white" => "white-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                            "blue" => "blue-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                            "gold" => "gold-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                            "red" => "red-".to_string() + &response.extension.attributes.unwrap()[1].value,
+                            _ => "".to_string()
+                        }
+                    },
+                    Err(_) => "".to_string()
+                }
+            }
+        }).collect()
+    }).collect();
+
+    // convert gem_materials_nft_color_and_star_user_list to gem_materials_work_power_user_list base on WHITE_GEM_WORK_POWER, BLUE_GEM_WORK_POWER, GOLD_GEM_WORK_POWER, RED_GEM_WORK_POWER
+    // take the star from color-star string and convert it to u8
+    let gem_materials_work_power_user_list: Vec<Vec<Decimal>> = gem_materials_nft_color_and_star_user_list.iter().map(|gem_materials| {
+        gem_materials.iter().map(|gem_material| {
+            let star: u8 = gem_material.split("-").collect::<Vec<&str>>()[1].parse().unwrap();
+            match gem_material.split("-").collect::<Vec<&str>>()[0] {
+                "white" => white_gem_work_power[star as usize - 1],
+                "blue" => blue_gem_work_power[star as usize - 1],
+                "gold" => gold_gem_work_power[star as usize - 1],
+                "red" => red_gem_work_power[star as usize - 1],
+                _ => Decimal::zero()
+            }
+        }).collect()
+    }).collect();
+
+    // convert gem_materials_work_power_user_list to gem_materials_work_power_user_list_sum
+    let gem_materials_work_power_user_list_sum: Vec<Decimal> = gem_materials_work_power_user_list.iter().map(|gem_materials| {
+        gem_materials.iter().sum()
+    }).collect();
+
+    // calculate the user work load base on star of gem_base
+    let user_work_load: Vec<Decimal> = gem_base_nft_color_and_star_user_list.iter().map(|gem_base| {
+        let star: u8 = gem_base.split("-").collect::<Vec<&str>>()[1].parse().unwrap();
+        gem_work_load[star as usize - 1]
+    }).collect();
+
+    // calculate the user win rate base on user work load and gem_materials_work_power_user_list_sum (win_rate = gem_materials_work_power_user_list_sum / user_work_load)
+    let user_win_rate: Vec<Decimal> = user_work_load.iter().zip(gem_materials_work_power_user_list_sum.iter()).map(|(work_load, work_power)| {
+        work_power / work_load
+    }).collect();
+
+    // convert user_addr and user_win_rate to Vec<(Addr, Decimal)>
+    let user_win_rate_list: Vec<(Addr, Decimal)> = user_list.iter().zip(user_win_rate.iter()).map(|(user, win_rate)| {
+        (user.user_addr.clone(), win_rate.clone())
+    }).collect();
+
+    user_win_rate_list
 }
 
 /// Handling contract query
