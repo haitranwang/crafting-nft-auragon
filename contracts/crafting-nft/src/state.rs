@@ -37,7 +37,8 @@ pub struct UserInfo {
 
 #[cw_serde]
 pub struct RandomJob {
-    pub user_win_rate_list: Vec<(Addr, Decimal)>,
+    pub gem_base_nft_color_and_star_user_list: Vec<String>,
+    pub user_win_rate_list: Vec<(Addr, u32)>,
     pub timestamp: Timestamp,
 }
 

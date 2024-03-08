@@ -56,10 +56,10 @@ pub enum ExecuteMsg {
         request_forge_id: String,
         forge_gem_list: Vec<RequestForgeGemInfo>,
     },
-    // Forging gem
-    ForgeGemType1 {
-        user_list: Vec<UserInfo>,
-    },
+    // // Forging gem
+    // ForgeGemType1 {
+    //     user_list: Vec<UserInfo>,
+    // },
     // Nois callback
     NoisReceive {
         callback: NoisCallback,
