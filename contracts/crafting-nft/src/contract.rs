@@ -792,7 +792,7 @@ pub fn nois_receive(
     select_gem_rewards(
         deps.storage,
         randomness,
-        key,
+        &key,
         random_job.timestamp,
     )?;
 
@@ -807,7 +807,7 @@ pub fn nois_receive(
 fn select_gem_rewards(
     storage: &mut dyn Storage,
     random_seed: [u8; 32],
-    key: String,
+    key: &String,
     forges: Timestamp,
 ) -> Result<Response, ContractError> {
     // update random seed
@@ -824,12 +824,12 @@ fn select_gem_rewards(
     // loop through user_win_rate_list and select gem rewards with select_from_weighted
     for (user_addr, win_rate) in user_win_rate_list {
         // make a new vec of win rate for each user by sub with 100
-        let failure_rate = 100 - win_rate;
+        let failure_rate = 101 - win_rate;
         let weights_list = vec![("success", win_rate), ("failure", failure_rate)];
         // select from weighted
-        let selected = select_from_weighted(random_seed, &weights_list);
+        let selected = select_from_weighted(random_seed, &weights_list).unwrap();
         // if selected is success, mint the new gem NFT with color and star = star + 1 from gem_base_nft_color_and_star_user_list
-        if selected.unwrap() == "success" {
+        if selected == "success" {
             let color_and_star = gem_base_nft_color_and_star_user_list.pop().unwrap();
             let color_and_star_split: Vec<&str> = color_and_star.split("-").collect();
             let color = color_and_star_split[0];
@@ -879,7 +879,7 @@ fn select_gem_rewards(
             res = res.add_attribute("user_failure", user_addr.to_string());
         }
     }
-    Ok(res)
+    Ok(res.add_attribute("action", "select_gem_rewards DONEEEEEEE"))
 }
 
 // fn convert_to_user_win_rate_list(deps: &DepsMut, user_list: Vec<UserInfo>) -> Vec<(Addr, u32)> {
@@ -1066,4 +1066,49 @@ fn addr_validate(api: &dyn Api, addr: &str) -> Result<Addr, ContractError> {
         .addr_validate(addr)
         .map_err(|_| ContractError::InvalidAddress {})?;
     Ok(addr)
+}
+
+// Unit test for select_gem_rewards
+#[cfg(test)]
+mod test_select_gem_rewards {
+    use cosmwasm_std::{testing::mock_dependencies, Addr, Timestamp};
+
+    use crate::{contract::select_gem_rewards, state::{AuragonURI, Config, RandomJob, AURAGON_LATEST_TOKEN_ID, AURAGON_URI, CONFIG, RANDOM_JOBS}};
+
+    #[test]
+    fn test_select_gem_rewards() {
+        let mut deps = mock_dependencies();
+        let config = {
+            Config {
+                nois_proxy: Addr::unchecked("nois_proxy"),
+                auragon_collection: Addr::unchecked("auragon_collection"),
+                shield_collection: Addr::unchecked("shield_collection"),
+                dragon_collection: Addr::unchecked("dragon_collection"),
+            }
+        };
+        CONFIG.save(&mut deps.storage, &config).unwrap();
+        let auragon_gem_latest_token_id = 1;
+        AURAGON_LATEST_TOKEN_ID.save(&mut deps.storage, &auragon_gem_latest_token_id).unwrap();
+        let auragon_uri = AuragonURI {
+            white: ["ipfs://1".to_string(), "ipfs://2".to_string(), "ipfs://3".to_string(), "ipfs://4".to_string(), "ipfs://5".to_string(), "ipfs://6".to_string(), "ipfs://7".to_string()],
+            blue: ["ipfs://1".to_string(), "ipfs://2".to_string(), "ipfs://3".to_string(), "ipfs://4".to_string(), "ipfs://5".to_string(), "ipfs://6".to_string(), "ipfs://7".to_string()],
+            gold: ["ipfs://1".to_string(), "ipfs://2".to_string(), "ipfs://3".to_string(), "ipfs://4".to_string(), "ipfs://5".to_string(), "ipfs://6".to_string(), "ipfs://7".to_string()],
+            red: ["ipfs://1".to_string(), "ipfs://2".to_string(), "ipfs://3".to_string(), "ipfs://4".to_string(), "ipfs://5".to_string(), "ipfs://6".to_string(), "ipfs://7".to_string()],
+        };
+        AURAGON_URI.save(&mut deps.storage, &auragon_uri).unwrap();
+
+        let random_job = RandomJob {
+            gem_base_nft_color_and_star_user_list: vec!["white-1".to_string(), "blue-1".to_string(), "gold-1".to_string(), "red-1".to_string()],
+            user_win_rate_list: vec![(Addr::unchecked("addr1"), 100), (Addr::unchecked("addr2"), 100), (Addr::unchecked("addr3"), 100), (Addr::unchecked("addr4"), 100)],
+            timestamp: Timestamp::from_seconds(0),
+        };
+        let key = "1".to_string();
+
+        RANDOM_JOBS.save(&mut deps.storage, key.clone(), &random_job).unwrap();
+        let random_seed: [u8; 32] = [231, 176, 72, 156, 81, 254, 186, 90, 6, 217, 100, 59, 104, 255, 174, 43, 10, 192, 5, 213, 175, 182, 53, 224, 165, 219, 23, 212, 104, 217, 54, 105];
+        let forges = Timestamp::from_seconds(0);
+        let res = select_gem_rewards(&mut deps.storage, random_seed, &key, forges);
+
+        assert_eq!(res.unwrap().messages, vec![]);
+    }
 }

@@ -56,6 +56,10 @@ pub enum ExecuteMsg {
         request_forge_id: String,
         forge_gem_list: Vec<RequestForgeGemInfo>,
     },
+    // SelectGemRewards {
+    //     random_seed: String,
+    //     key: String,
+    // },
     // // Forging gem
     // ForgeGemType1 {
     //     user_list: Vec<UserInfo>,
