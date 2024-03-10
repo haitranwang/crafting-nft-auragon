@@ -469,7 +469,7 @@ pub fn execute_forge_gem(
     let mut res = Response::new();
 
     // Get user_user_success_rate_list from forge_gem_list
-    let user_win_rate_list: Vec<(Addr, u32)> = forge_gem_list.iter().map(|forge_gem| {
+    let user_success_rate_list: Vec<(Addr, u32)> = forge_gem_list.iter().map(|forge_gem| {
         (forge_gem.user_addr.clone(), forge_gem.success_rate.parse::<u32>().unwrap())
     }).collect();
 
@@ -487,7 +487,7 @@ pub fn execute_forge_gem(
     // save job for mapping callback response to request
     let random_job = RandomJob {
         gem_base_nft_color_and_star_user_list,
-        user_win_rate_list,
+        user_success_rate_list,
         timestamp: env.block.time,
     };
 
@@ -523,8 +523,8 @@ pub fn execute_forge_gem(
 
 //     let mut res = Response::new();
 
-//     // A list of user and their win rate
-//     let user_win_rate_list: Vec<(Addr, u32)> = convert_to_user_win_rate_list(&deps, user_list.clone());
+//     // A list of user and their success rate
+//     let user_success_rate_list: Vec<(Addr, u32)> = convert_to_user_success_rate_list(&deps, user_list.clone());
 
 //     // Make randomness request message to NOIS proxy contract
 //     let msg_make_randomess = CosmosMsg::Wasm(WasmMsg::Execute {
@@ -539,7 +539,7 @@ pub fn execute_forge_gem(
 
 //     // save job for mapping callback response to request
 //     let random_job = RandomJob {
-//         user_win_rate_list,
+//         user_success_rate_list,
 //         timestamp: env.block.time,
 //     };
 
@@ -789,7 +789,7 @@ pub fn nois_receive(
     // init a key for the random provider from the job id
     let key = format!("{}", job_id.clone());
 
-    select_gem_rewards(
+    let res = select_gem_rewards(
         deps.storage,
         randomness,
         &key,
@@ -799,7 +799,7 @@ pub fn nois_receive(
     // job finished, just remove
     RANDOM_JOBS.remove(deps.storage, job_id.clone());
 
-    Ok(Response::new()
+    Ok(res
         .add_attribute("action", "nois_receive")
         .add_attribute("job_id", job_id))
 }
@@ -816,16 +816,22 @@ fn select_gem_rewards(
     let config: Config = CONFIG.load(storage)?;
     // load random job
     let random_job: RandomJob = RANDOM_JOBS.load(storage, key.clone())?;
-    // load user win rate list
-    let user_win_rate_list = random_job.user_win_rate_list;
+    // load user success rate list
+    let user_success_rate_list = random_job.user_success_rate_list;
     // load gem base nft color and star user list
     let mut gem_base_nft_color_and_star_user_list = random_job.gem_base_nft_color_and_star_user_list;
     let mut res = Response::new();
-    // loop through user_win_rate_list and select gem rewards with select_from_weighted
-    for (user_addr, win_rate) in user_win_rate_list {
-        // make a new vec of win rate for each user by sub with 100
-        let failure_rate = 101 - win_rate;
-        let weights_list = vec![("success", win_rate), ("failure", failure_rate)];
+    let mut latest_token_id = AURAGON_LATEST_TOKEN_ID.load(storage)?;
+    // loop through user_success_rate_list and select gem rewards with select_from_weighted
+    for (user_addr, success_rate) in user_success_rate_list {
+        let weights_list: Vec<(&str, u32)>;
+        // make a new vec of success rate for each user by sub with 100
+        let failure_rate = 100 - success_rate;
+        if failure_rate == 0 {
+            weights_list = vec![("success", success_rate)];
+        } else {
+            weights_list = vec![("success", success_rate), ("failure", failure_rate)];
+        }
         // select from weighted
         let selected = select_from_weighted(random_seed, &weights_list).unwrap();
         // if selected is success, mint the new gem NFT with color and star = star + 1 from gem_base_nft_color_and_star_user_list
@@ -835,7 +841,8 @@ fn select_gem_rewards(
             let color = color_and_star_split[0];
             let star = color_and_star_split[1].parse::<u32>().unwrap();
             let auragon_collection = config.auragon_collection.clone();
-            let latest_token_id = AURAGON_LATEST_TOKEN_ID.load(storage)?;
+            // increase the latest token id by 1
+            latest_token_id += 1;
             let token_uri = match color {
                 "white" => AURAGON_URI.load(storage)?.white[star as usize].clone(),
                 "blue" => AURAGON_URI.load(storage)?.blue[star as usize].clone(),
@@ -861,28 +868,29 @@ fn select_gem_rewards(
             let mint_gem = wasm_execute(
                 auragon_collection.to_string(),
                 &Cw721BaseExecuteMsg::Mint::<Metadata, Empty> {
-                    token_id: (latest_token_id + 1).to_string(),
+                    token_id: (latest_token_id).to_string(),
                     owner: user_addr.to_string(),
                     token_uri: Some(token_uri),
                     extension,
                 },
                 vec![],
             )?;
-            // update the latest token id
-            AURAGON_LATEST_TOKEN_ID.save(storage, &(latest_token_id + 1))?;
+            // add message mint_gem and approve_all to the response
+            res = res.add_message(mint_gem);
             // add attribute to the response user success and token id minted
             res = res.add_attribute("user_success", user_addr.to_string())
-                .add_attribute("new_token_id", (latest_token_id + 1).to_string())
-                .add_message(mint_gem);
+                .add_attribute("new_token_id", (latest_token_id).to_string());
         } else {
             // add attribute to the response user failure
             res = res.add_attribute("user_failure", user_addr.to_string());
         }
     }
+    // update the latest token id
+    AURAGON_LATEST_TOKEN_ID.save(storage, &(latest_token_id))?;
     Ok(res.add_attribute("action", "select_gem_rewards DONEEEEEEE"))
 }
 
-// fn convert_to_user_win_rate_list(deps: &DepsMut, user_list: Vec<UserInfo>) -> Vec<(Addr, u32)> {
+// fn convert_to_user_success_rate_list(deps: &DepsMut, user_list: Vec<UserInfo>) -> Vec<(Addr, u32)> {
 //     // get CONFIG
 //     let config: Config = CONFIG.load(deps.storage).unwrap();
 //     // get white gem work power
@@ -1030,17 +1038,17 @@ fn select_gem_rewards(
 //         gem_work_load[star as usize - 1]
 //     }).collect();
 
-//     // calculate the user win rate base on user work load and gem_materials_work_power_user_list_sum (win_rate = gem_materials_work_power_user_list_sum / user_work_load)
-//     let user_win_rate: Vec<Decimal> = user_work_load.iter().zip(gem_materials_work_power_user_list_sum.iter()).map(|(work_load, work_power)| {
+//     // calculate the user success rate base on user work load and gem_materials_work_power_user_list_sum (success_rate = gem_materials_work_power_user_list_sum / user_work_load)
+//     let user_success_rate: Vec<Decimal> = user_work_load.iter().zip(gem_materials_work_power_user_list_sum.iter()).map(|(work_load, work_power)| {
 //         work_power / work_load
 //     }).collect();
 
-//     // convert user_addr and user_win_rate to Vec<(Addr, u32)>
-//     let user_win_rate_list: Vec<(Addr, u32)> = user_list.iter().map(|user| {
-//         (user.user_addr.clone(), user_win_rate[user_list.iter().position(|x| x == user).unwrap()].to_u32().unwrap())
+//     // convert user_addr and user_success_rate to Vec<(Addr, u32)>
+//     let user_success_rate_list: Vec<(Addr, u32)> = user_list.iter().map(|user| {
+//         (user.user_addr.clone(), user_success_rate[user_list.iter().position(|x| x == user).unwrap()].to_u32().unwrap())
 //     }).collect();
 
-//     user_win_rate_list
+//     user_success_rate_list
 // }
 
 /// Handling contract query
@@ -1099,7 +1107,7 @@ mod test_select_gem_rewards {
 
         let random_job = RandomJob {
             gem_base_nft_color_and_star_user_list: vec!["white-1".to_string(), "blue-1".to_string(), "gold-1".to_string(), "red-1".to_string()],
-            user_win_rate_list: vec![(Addr::unchecked("addr1"), 100), (Addr::unchecked("addr2"), 100), (Addr::unchecked("addr3"), 100), (Addr::unchecked("addr4"), 100)],
+            user_success_rate_list: vec![(Addr::unchecked("addr1"), 100), (Addr::unchecked("addr2"), 100), (Addr::unchecked("addr3"), 100), (Addr::unchecked("addr4"), 100)],
             timestamp: Timestamp::from_seconds(0),
         };
         let key = "1".to_string();
@@ -1108,7 +1116,9 @@ mod test_select_gem_rewards {
         let random_seed: [u8; 32] = [231, 176, 72, 156, 81, 254, 186, 90, 6, 217, 100, 59, 104, 255, 174, 43, 10, 192, 5, 213, 175, 182, 53, 224, 165, 219, 23, 212, 104, 217, 54, 105];
         let forges = Timestamp::from_seconds(0);
         let res = select_gem_rewards(&mut deps.storage, random_seed, &key, forges);
-
+        // print AURA LATEST TOKEN ID
+        let auragon_gem_latest_token_id = AURAGON_LATEST_TOKEN_ID.load(&deps.storage).unwrap();
+        println!("AURA LATEST TOKEN: {:?}", auragon_gem_latest_token_id);
         assert_eq!(res.unwrap().messages, vec![]);
     }
 }
